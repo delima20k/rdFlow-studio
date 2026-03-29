@@ -406,6 +406,26 @@
       display: inline-block;
     }
 
+    /* Editor de vídeo modal - tela cheia */
+    .device-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 4000;
+      overflow: hidden;
+    }
+
+    .device-modal.active {
+      display: flex;
+    }
+
+    .device-content {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
     @media (max-width: 1024px) {
       .studio-container {
         grid-template-columns: 1fr;
