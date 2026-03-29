@@ -2537,8 +2537,8 @@ async function openVerticalVideoEditor(selectedFormat) {
   modal.style.zIndex = '4000';
   
   modal.innerHTML = `
-    <div class="device-content" style="max-width: 1200px; max-height: 90vh; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; padding: 24px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <div class="device-content" style="width: 100vw; height: 100vh; overflow: hidden; display: flex; flex-direction: column; padding: 0; margin: 0;">
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; background: var(--panel); border-bottom: 2px solid var(--border);">
         <div>
           <h3>✨ Editor de Composição Vertical (9:16)</h3>
           <p style="color: var(--text-muted); font-size: 13px; margin-top: 4px;">
@@ -2548,7 +2548,7 @@ async function openVerticalVideoEditor(selectedFormat) {
         <button id="close-editor" class="btn-secondary" style="padding: 8px 16px;">✖ Fechar</button>
       </div>
       
-      <div style="flex: 1; display: grid; grid-template-columns: 250px 1fr 250px; gap: 20px; overflow: visible; min-height: 600px;">
+      <div style="flex: 1; display: grid; grid-template-columns: 250px 1fr 250px; gap: 20px; overflow: hidden; padding: 20px; background: var(--bg);">
         <!-- Painel Esquerdo: Elementos -->
         <div style="background: var(--panel-dark); border-radius: 12px; padding: 16px; overflow-y: auto;">
           <h4 style="margin-bottom: 12px; font-size: 14px;">📦 Adicionar Elementos</h4>
@@ -2629,7 +2629,7 @@ async function openVerticalVideoEditor(selectedFormat) {
         </div>
         
         <!-- Área Central: Editor + Preview Canvas -->
-        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--panel-dark); border-radius: 12px; overflow: hidden; padding: 16px; gap: 16px;">
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start; background: var(--panel-dark); border-radius: 12px; overflow-y: auto; padding: 16px; gap: 16px;">
           
           <!-- Título do Preview -->
           <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 0 8px;">
@@ -2661,8 +2661,6 @@ async function openVerticalVideoEditor(selectedFormat) {
                   💡 Use os controles à esquerda para ajustar posição e tamanho do vídeo
                 </div>
               </div>
-              </div>
-              </div>
             </div>
             
             <!-- Canvas de Preview Final (Renderização Real) -->
@@ -2693,6 +2691,37 @@ async function openVerticalVideoEditor(selectedFormat) {
             </div>
             
           </div>
+          
+          <!-- Barra de Progresso da Exportação -->
+          <div id="export-progress-container" style="width: 100%; display: none; margin-top: 16px;">
+            <div style="background: var(--panel-light); border-radius: 12px; padding: 16px; border: 2px solid var(--accent);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h4 style="margin: 0; font-size: 14px; color: var(--text);">🎬 Exportando Vídeo...</h4>
+                <span id="export-percentage" style="font-size: 18px; font-weight: 700; color: var(--accent);">0%</span>
+              </div>
+              
+              <!-- Barra de progresso -->
+              <div style="width: 100%; height: 12px; background: var(--panel-dark); border-radius: 6px; overflow: hidden; margin-bottom: 12px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);">
+                <div id="export-progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--accent), var(--success)); transition: width 0.3s ease; border-radius: 6px;"></div>
+              </div>
+              
+              <!-- Info de tempo -->
+              <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted);">
+                <span id="export-time-info">Renderizando: 0.0s / 0.0s</span>
+                <span id="export-status">Preparando...</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Botões de Ação dentro do editor -->
+          <div id="action-buttons" style="width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 2px solid var(--border);">
+            <button id="export-video-btn" class="btn-success" style="padding: 16px; font-size: 15px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
+              ⬇️ Exportar Vídeo
+            </button>
+            <button id="cancel-editor-btn" class="btn-secondary" style="padding: 16px; font-size: 15px;">
+              ❌ Cancelar
+            </button>
+          </div>
         </div>
         
         <!-- Painel Direito: Camadas -->
@@ -2702,37 +2731,6 @@ async function openVerticalVideoEditor(selectedFormat) {
             <p style="color: var(--text-muted); font-size: 12px; text-align: center;">Nenhum elemento adicionado</p>
           </div>
         </div>
-      </div>
-      
-      <!-- Barra de Progresso da Exportação -->
-      <div id="export-progress-container" style="margin-top: 20px; display: none;">
-        <div style="background: var(--panel-light); border-radius: 12px; padding: 16px; border: 2px solid var(--accent);">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <h4 style="margin: 0; font-size: 14px; color: var(--text);">🎬 Exportando Vídeo...</h4>
-            <span id="export-percentage" style="font-size: 18px; font-weight: 700; color: var(--accent);">0%</span>
-          </div>
-          
-          <!-- Barra de progresso -->
-          <div style="width: 100%; height: 12px; background: var(--panel-dark); border-radius: 6px; overflow: hidden; margin-bottom: 12px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);">
-            <div id="export-progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--accent), var(--success)); transition: width 0.3s ease; border-radius: 6px;"></div>
-          </div>
-          
-          <!-- Info de tempo -->
-          <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted);">
-            <span id="export-time-info">Renderizando: 0.0s / 0.0s</span>
-            <span id="export-status">Preparando...</span>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Botões de Ação (sempre visíveis) -->
-      <div id="action-buttons" style="margin-top: 20px; padding: 16px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; background: var(--panel); border-top: 2px solid var(--border); margin-left: -24px; margin-right: -24px; padding-left: 24px; padding-right: 24px; position: sticky; bottom: 0; z-index: 100;">
-        <button id="export-video-btn" class="btn-success" style="padding: 16px; font-size: 15px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
-          ⬇️ Exportar Vídeo
-        </button>
-        <button id="cancel-editor-btn" class="btn-secondary" style="padding: 16px; font-size: 15px;">
-          ❌ Cancelar
-        </button>
       </div>
     </div>
   `;
