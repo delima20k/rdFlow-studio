@@ -1195,19 +1195,20 @@
       }
     }
 
-    /* ===== RESPONSIVIDADE PARA TELAS GRANDES (14-29 POLEGADAS) ===== */
+    /* ===== PADRÃO GLOBAL DE SCROLLBAR ===== */
 
-    /* Estilização da scrollbar do menu lateral - aparece automaticamente ao passar o mouse */
-    .controls-panel::-webkit-scrollbar {
+    /* Scrollbar padrão para todos os elementos - 5px, invisível até hover */
+    *::-webkit-scrollbar {
       width: 5px;
+      height: 5px;
     }
 
-    .controls-panel::-webkit-scrollbar-track {
+    *::-webkit-scrollbar-track {
       background: #131820;
       border-radius: 2px;
     }
 
-    .controls-panel::-webkit-scrollbar-thumb {
+    *::-webkit-scrollbar-thumb {
       background: transparent;
       border-radius: 2px;
       transition: background 0.3s ease;
@@ -1215,25 +1216,26 @@
       max-height: 10px;
     }
 
-    /* Scrollbar visível ao passar o mouse sobre o painel */
-    .controls-panel:hover::-webkit-scrollbar-thumb {
+    /* Scrollbar visível ao passar o mouse */
+    *:hover::-webkit-scrollbar-thumb {
       background: var(--accent);
     }
 
-    .controls-panel:hover::-webkit-scrollbar-thumb:hover {
+    *:hover::-webkit-scrollbar-thumb:hover {
       background: #2563eb;
     }
 
-    /* Firefox scrollbar - automático ao hover */
-    .controls-panel {
+    /* Firefox scrollbar - padrão global */
+    * {
       scrollbar-width: thin;
       scrollbar-color: transparent #131820;
-      transition: scrollbar-color 0.3s ease;
     }
 
-    .controls-panel:hover {
+    *:hover {
       scrollbar-color: var(--accent) #131820;
     }
+
+    /* ===== RESPONSIVIDADE PARA TELAS GRANDES (14-29 POLEGADAS) ===== */
 
     /* Telas 14-15 polegadas (1366px - 1919px) - Laptops HD+ */
     @media (min-width: 1366px) and (max-width: 1919px) {
