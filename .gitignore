@@ -1,0 +1,31 @@
+# Dependências
+node_modules/
+package-lock.json
+
+# Variáveis de ambiente
+.env
+
+# Arquivos de mídia gerados
+media/
+*.mp4
+*.ts
+*.m3u8
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build
+dist/
+build/

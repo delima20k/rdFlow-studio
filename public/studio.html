@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Estúdio de Captura - Streaming API</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75'>🎬</text></svg>" />
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap");
+
+    :root {
+      --bg: #0a0e1a;
+      --panel: #131820;
+      --panel-light: #1a2030;
+      --text: #e8edf5;
+      --text-muted: #8c9ab8;
+      --accent: #3b82f6;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --border: #2d3748;
+      --glass: rgba(19, 24, 32, 0.85);
+      --shadow: 0 20px 40px rgba(5, 10, 20, 0.4);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "IBM Plex Sans", sans-serif;
+      background: radial-gradient(circle at top left, rgba(59, 130, 246, 0.2), transparent 45%),
+        radial-gradient(circle at bottom right, rgba(16, 185, 129, 0.15), transparent 50%),
+        var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .studio-container {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      grid-template-rows: 60px 1fr 80px;
+      height: 100vh;
+      gap: 1px;
+      background: var(--border);
+      transition: grid-template-columns 0.25s ease;
+      overflow: hidden;
+    }
+
+    body.controls-collapsed .studio-container {
+      grid-template-columns: 1fr 0;
+    }
+
+    header {
+      grid-column: 1 / -1;
+      background: var(--panel);
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+
+    header h1 {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: 0.4px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-button {
+      background: var(--panel-light);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .header-button:hover {
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .sources-panel {
+      background: transparent;
+      padding: 0;
+      overflow-y: auto;
+      z-index: 2;
+      margin-bottom: 20px;
+    }
+
+    .sources-panel h2 {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .source-item {
+      background: var(--panel-light);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .source-item:hover {
+      border-color: var(--accent);
+      transform: translateX(4px);
+    }
+
+    .source-item.active {
+      border-color: var(--success);
+      background: rgba(16, 185, 129, 0.1);
+    }
+
+    .source-name {
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .source-status {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .preview-area {
+      background: var(--panel);
+      display: grid;
+      grid-template-rows: 1fr auto;
+      padding: 16px;
+      gap: 16px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .preview-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      height: 100%;
+    }
+
+    .preview-box {
+      background: #000;
+      border-radius: 8px;
+      border: 2px solid var(--border);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .preview-box.main {
+      grid-column: 1 / -1;
+      grid-row: 1 / 3;
+    }
+
+    .preview-box video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .preview-label {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .preview-placeholder {
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    .controls-panel {
+      background: var(--panel);
+      padding: 16px;
+      overflow-y: auto;
+      position: relative;
+      z-index: 3;
+      width: 360px;
+      max-width: 360px;
+      min-width: 0;
+      box-shadow: var(--shadow);
+      transition: transform 0.25s ease, opacity 0.25s ease;
+      pointer-events: auto;
+    }
+
+    body.controls-open .controls-panel {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    body.controls-collapsed .controls-panel {
+      width: 0;
+      max-width: 0;
+      padding: 0;
+      border: 0;
+      overflow: hidden;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .drawer-scrim {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 6, 14, 0.55);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+      z-index: 4;
+    }
+
+    body.controls-open .drawer-scrim {
+      opacity: 1;
+      pointer-events: none;
+    }
+
+    .control-group {
+      margin-bottom: 20px;
+    }
+
+    .control-group h3 {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 8px;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #2563eb;
+      transform: translateY(-2px);
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #059669;
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+
+    .btn-secondary {
+      background: var(--panel-light);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: #2d3748;
+    }
+
+    select, input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      background: var(--panel-light);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    .recording-indicator {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: var(--danger);
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .recording-indicator.active {
+      display: flex;
+    }
+
+    .rec-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: white;
+      animation: blink 1s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    footer {
+      grid-column: 1 / -1;
+      background: var(--panel);
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid var(--border);
+    }
+
+    .footer-info {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .qr-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .qr-modal.active {
+      display: flex;
+    }
+
+    .qr-content {
+      background: var(--panel);
+      padding: 32px;
+      border-radius: 12px;
+      text-align: center;
+      max-width: 400px;
+    }
+
+    .qr-content h3 {
+      margin-bottom: 16px;
+    }
+
+    .qr-code {
+      background: white;
+      padding: 20px;
+      margin: 20px auto;
+      border-radius: 8px;
+      display: inline-block;
+    }
+
+    @media (max-width: 1024px) {
+      .studio-container {
+        grid-template-columns: 1fr;
+        grid-template-rows: 60px 1fr auto auto 80px;
+      }
+
+      .preview-area {
+        grid-column: 1;
+      }
+
+      .controls-panel {
+        position: fixed;
+        top: 60px;
+        right: 0;
+        bottom: 80px;
+        width: min(320px, 92vw);
+        max-width: none;
+        transform: translateX(100%);
+      }
+
+      body.controls-open .controls-panel {
+        transform: translateX(0);
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      body.controls-open .drawer-scrim {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      body.controls-collapsed .controls-panel {
+        opacity: 1;
+        pointer-events: auto;
+      }
+    }
+
+    @media (min-width: 1025px) {
+      .drawer-scrim {
+        display: none;
+      }
+    }
+
+    /* ===== PADRÃO PROFISSIONAL MOBILE-FIRST (TIKTOK/REELS) ===== */
+    
+    /* Preview vertical 9:16 - padrão mobile */
+    .preview-box.main {
+      aspect-ratio: 9 / 16;
+      max-width: min(500px, 100%);
+      margin: 0 auto;
+    }
+    
+    .preview-box.main video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Fullscreen mobile para vídeos verticais */
+    @media (max-width: 768px) {
+      .preview-box.main {
+        width: 100%;
+        height: auto;
+      }
+
+      .preview-box.main video {
+        width: 100vw;
+        height: 100vh;
+        object-fit: cover;
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+
+      .preview-area {
+        padding: 0;
+      }
+
+      .preview-grid {
+        gap: 0;
+      }
+    }
+
+    /* Player fullscreen em modo mobile */
+    video.fullscreen-mobile {
+      width: 100vw !important;
+      height: 100vh !important;
+      object-fit: cover !important;
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      z-index: 9999 !important;
+    }
+
+    /* Adaptação para tablets vertical */
+    @media (min-width: 769px) and (max-width: 1024px) {
+      .preview-box.main {
+        max-width: 450px;
+      }
+    }
+
+    /* Desktop: manter proporção vertical centralizada */
+    @media (min-width: 1025px) {
+      .preview-box.main {
+        max-width: 600px;
+      }
+    }
+
+    /* ===== WEBCAM OVERLAY STYLES ===== */
+    .webcam-overlay {
+      display: none;
+      position: absolute;
+      width: 200px;
+      height: 200px;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1000;
+      cursor: move;
+      user-select: none;
+      transition: all 0.3s ease;
+    }
+
+    .webcam-overlay.active {
+      display: block;
+    }
+
+    /* Botão de Configuração no Overlay */
+    .overlay-config-btn {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      width: 32px;
+      height: 32px;
+      background: rgba(59, 130, 246, 0.95);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      font-size: 16px;
+      cursor: pointer;
+      z-index: 1002;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .overlay-config-btn:hover {
+      background: rgba(59, 130, 246, 1);
+      transform: scale(1.1) rotate(90deg);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.5);
+    }
+
+    .overlay-config-btn:active {
+      transform: scale(0.95) rotate(90deg);
+    }
+
+    .overlay-frame {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #overlay-video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .overlay-message {
+      position: absolute;
+      bottom: -40px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.85);
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      z-index: 10;
+      pointer-events: none;
+      display: none;
+    }
+
+    .overlay-message:not(:empty) {
+      display: block;
+      animation: slideUp 0.4s ease-out;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+
+    .overlay-close-btn {
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #ef4444;
+      color: white;
+      border: 2px solid white;
+      font-size: 20px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+      transition: all 0.2s;
+    }
+
+    .overlay-close-btn:hover {
+      background: #dc2626;
+      transform: scale(1.1);
+    }
+
+    .resize-handle {
+      position: absolute;
+      bottom: -5px;
+      right: -5px;
+      width: 20px;
+      height: 20px;
+      background: #3b82f6;
+      border: 2px solid white;
+      border-radius: 50%;
+      cursor: nwse-resize;
+      z-index: 20;
+      transition: all 0.2s;
+    }
+
+    .resize-handle:hover {
+      background: #2563eb;
+      transform: scale(1.2);
+    }
+
+    /* Estilos de Molduras */
+    .overlay-frame.circular {
+      border-radius: 50%;
+      border: 4px solid #fff;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .overlay-frame.rounded-square {
+      border-radius: 20px;
+      border: 4px solid #fff;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .overlay-frame.square {
+      border: 4px solid #fff;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .overlay-frame.hexagon {
+      clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+      border: none;
+      box-shadow: 0 0 0 4px #fff, 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .overlay-frame.neon-border {
+      border-radius: 50%;
+      border: 3px solid #3b82f6;
+      box-shadow: 
+        0 0 10px #3b82f6,
+        0 0 20px #3b82f6,
+        0 0 30px #3b82f6,
+        inset 0 0 10px rgba(59, 130, 246, 0.5);
+      animation: neonPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes neonPulse {
+      0%, 100% {
+        box-shadow: 
+          0 0 10px #3b82f6,
+          0 0 20px #3b82f6,
+          0 0 30px #3b82f6,
+          inset 0 0 10px rgba(59, 130, 246, 0.5);
+      }
+      50% {
+        box-shadow: 
+          0 0 20px #3b82f6,
+          0 0 40px #3b82f6,
+          0 0 60px #3b82f6,
+          inset 0 0 20px rgba(59, 130, 246, 0.7);
+      }
+    }
+
+    .overlay-frame.dual-border {
+      border-radius: 50%;
+      border: 3px solid #fff;
+      box-shadow: 
+        0 0 0 6px #3b82f6,
+        0 0 0 10px #fff,
+        0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .overlay-frame.gradient-frame {
+      border-radius: 20px;
+      border: 4px solid transparent;
+      background: 
+        linear-gradient(#000, #000) padding-box,
+        linear-gradient(135deg, #667eea 0%, #764ba2 100%) border-box;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .overlay-frame.classic-gold {
+      border-radius: 10px;
+      border: 6px solid #d4af37;
+      box-shadow: 
+        inset 0 0 10px rgba(212, 175, 55, 0.5),
+        0 0 15px rgba(212, 175, 55, 0.6),
+        0 4px 20px rgba(0, 0, 0, 0.4);
+      background: linear-gradient(135deg, transparent 0%, rgba(212, 175, 55, 0.1) 100%);
+    }
+
+    /* ===== ESTILOS PARA CONTROLES DE OVERLAY NO SIDEBAR ===== */
+    
+    .overlay-controls-group {
+      background: rgba(59, 130, 246, 0.05);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      border-radius: 12px;
+      padding: 16px;
+      transition: all 0.3s ease;
+    }
+    
+    .overlay-controls-group:hover {
+      background: rgba(59, 130, 246, 0.08);
+      border-color: rgba(59, 130, 246, 0.3);
+    }
+
+    .overlay-section {
+      margin-bottom: 16px;
+    }
+
+    .overlay-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Molduras Compactas */
+    .frame-styles-compact {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .frame-compact-btn {
+      background: var(--panel-light);
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      padding: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      aspect-ratio: 1;
+      margin: 0;
+    }
+
+    .frame-compact-btn:hover {
+      border-color: var(--accent);
+      transform: scale(1.05);
+    }
+
+    .frame-compact-btn.active {
+      border-color: var(--success);
+      background: rgba(16, 185, 129, 0.15);
+    }
+
+    .frame-mini {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .frame-mini.rounded-square {
+      border-radius: 8px;
+      border: 2px solid #fff;
+    }
+
+    .frame-mini.square {
+      border-radius: 0;
+      border: 2px solid #fff;
+    }
+
+    .frame-mini.hexagon {
+      clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+      box-shadow: 0 0 0 2px #fff;
+    }
+
+    .frame-mini.neon-border {
+      border: 2px solid #3b82f6;
+      box-shadow: 0 0 6px #3b82f6, inset 0 0 6px rgba(59, 130, 246, 0.3);
+    }
+
+    .frame-mini.dual-border {
+      border: 2px solid #fff;
+      box-shadow: 0 0 0 3px #3b82f6, 0 0 0 4px #fff;
+    }
+
+    .frame-mini.gradient-frame {
+      border-radius: 6px;
+      border: 2px solid transparent;
+      background: 
+        linear-gradient(#667eea, #764ba2) padding-box,
+        linear-gradient(135deg, #667eea 0%, #764ba2 100%) border-box;
+    }
+
+    .frame-mini.classic-gold {
+      border-radius: 4px;
+      border: 2px solid #d4af37;
+      box-shadow: inset 0 0 4px rgba(212, 175, 55, 0.5);
+    }
+
+    /* Tabs de Mensagem Compactas */
+    .message-tabs-compact {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .msg-tab {
+      background: var(--panel-light);
+      border: 2px solid var(--border);
+      border-radius: 6px;
+      padding: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+    }
+
+    .msg-tab:hover {
+      border-color: var(--accent);
+    }
+
+    .msg-tab.active {
+      border-color: var(--accent);
+      background: rgba(59, 130, 246, 0.2);
+    }
+
+    /* Painéis de Mensagem */
+    .message-panel {
+      display: block;
+    }
+
+    .message-panel.hidden {
+      display: none;
+    }
+
+    .message-select {
+      width: 100%;
+      padding: 10px;
+      background: var(--panel-light);
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .message-select:focus {
+      border-color: var(--accent);
+      outline: none;
+    }
+
+    #custom-message-input {
+      width: 100%;
+      padding: 10px;
+      background: var(--panel-light);
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    #custom-message-input:focus {
+      border-color: var(--accent);
+      outline: none;
+    }
+
+    .btn-compact {
+      padding: 8px 12px;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    /* Controles de Posição e Tamanho */
+    .overlay-select {
+      width: 100%;
+      padding: 10px;
+      background: var(--panel-light);
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+
+    .overlay-select:focus {
+      border-color: var(--accent);
+      outline: none;
+    }
+
+    .size-control {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .size-control input[type="range"] {
+      flex: 1;
+      height: 6px;
+      background: var(--panel-light);
+      border-radius: 3px;
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    .size-control input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      background: var(--accent);
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    .size-control input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      background: var(--accent);
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+    }
+
+    .size-control span {
+      min-width: 50px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    /* ===== FIM DOS ESTILOS DE OVERLAY ===== */
+  </style>
+</head>
+<body class="controls-open">
+  <div class="studio-container">
+    <header>
+      <h1>Estúdio de Captura</h1>
+      <div class="header-actions">
+        <button class="header-button" id="toggle-controls">☰ Configurações</button>
+        <div class="status-indicator">
+        <div class="status-dot"></div>
+        <span>Sistema pronto</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="preview-area">
+      <div class="preview-grid">
+        <div class="preview-box main">
+          <div class="preview-label">Preview Principal</div>
+          <video id="main-preview" autoplay muted playsinline"></video>
+          <div class="preview-placeholder">Nenhuma fonte ativa</div>
+          
+          <!-- Webcam Overlay personalizável -->
+          <div id="webcam-overlay" class="webcam-overlay">
+            <div class="overlay-frame">
+              <div class="overlay-message"></div>
+              <video id="overlay-video" autoplay muted playsinline></video>
+            </div>
+            <button id="overlay-config-btn" class="overlay-config-btn" title="Configurar design da webcam">⚙️</button>
+            <button id="overlay-close" class="overlay-close-btn">×</button>
+            <div id="resize-handle" class="resize-handle"></div>
+          </div>
+        </div>
+
+        <div class="preview-box">
+          <div class="preview-label">Tela</div>
+          <video id="screen-preview" autoplay muted playsinline></video>
+        </div>
+
+        <div class="preview-box">
+          <div class="preview-label">Webcam</div>
+          <video id="webcam-preview" autoplay muted playsinline></video>
+        </div>
+
+        <div class="preview-box">
+          <div class="preview-label">Celular</div>
+          <video id="phone-preview" autoplay muted playsinline></video>
+        </div>
+      </div>
+    </main>
+
+    <aside class="controls-panel">
+      <div class="sources-panel">
+        <h2>Fontes de Captura</h2>
+        
+        <div class="source-item" data-source="screen">
+          <div class="source-name">🖥️ Tela + Áudio Sistema</div>
+          <div class="source-status">Clique para ativar</div>
+        </div>
+
+        <div class="source-item" data-source="webcam">
+          <div class="source-name">📹 Webcam</div>
+          <div class="source-status">Clique para ativar</div>
+        </div>
+
+        <div class="source-item" data-source="microphone">
+          <div class="source-name">🎤 Microfone</div>
+          <div class="source-status">Clique para ativar</div>
+        </div>
+
+        <div class="source-item" data-source="phone">
+          <div class="source-name">📱 Câmera do Celular</div>
+          <div class="source-status">Clique para conectar</div>
+        </div>
+      </div>
+
+      <div class="recording-indicator" id="recording-indicator">
+        <div class="rec-dot"></div>
+        <span>GRAVANDO</span>
+        <span id="recording-time">00:00</span>
+      </div>
+
+      <div class="control-group">
+        <h3>Configurações</h3>
+        <select id="webcam-select">
+          <option value="">Selecione webcam...</option>
+        </select>
+        <select id="resolution-select">
+          <option value="hd">HD (1280x720)</option>
+          <option value="fhd">Full HD (1920x1080)</option>
+          <option value="sd">SD (640x480)</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <h3>Gravação</h3>
+        <button id="start-recording" class="btn-danger">● Iniciar Gravação</button>
+        <button id="stop-recording" class="btn-secondary" disabled>■ Parar Gravação</button>
+        <button id="download-recording" class="btn-secondary" disabled>⬇ Baixar Última Gravação</button>
+      </div>
+
+      <div class="control-group">
+        <h3>Streaming</h3>
+        <input type="text" id="stream-title-studio" placeholder="Título da transmissão" />
+        <button id="create-stream-studio" class="btn-primary">Criar Transmissão</button>
+        <button id="start-broadcast" class="btn-success" disabled>📡 Iniciar Broadcast</button>
+        <button id="stop-broadcast" class="btn-danger" disabled>⏹ Parar Broadcast</button>
+      </div>
+
+      <div class="control-group overlay-controls-group">
+        <h3>🎨 Design da Webcam</h3>
+        <button id="toggle-overlay" class="btn-secondary">Ativar/Desativar Overlay</button>
+        
+        <!-- Estilos de Moldura -->
+        <div class="overlay-section">
+          <label class="overlay-label">Estilo da Moldura</label>
+          <div class="frame-styles-compact">
+            <button class="frame-compact-btn" data-style="circular" title="Circular">
+              <div class="frame-mini circular"></div>
+            </button>
+            <button class="frame-compact-btn" data-style="rounded-square" title="Quadrado Arredondado">
+              <div class="frame-mini rounded-square"></div>
+            </button>
+            <button class="frame-compact-btn" data-style="square" title="Quadrado">
+              <div class="frame-mini square"></div>
+            </button>
+            <button class="frame-compact-btn" data-style="hexagon" title="Hexágono">
+              <div class="frame-mini hexagon"></div>
+            </button>
+            <button class="frame-compact-btn active" data-style="neon-border" title="Neon Border">
+              <div class="frame-mini neon-border"></div>
+            </button>
+            <button class="frame-compact-btn" data-style="dual-border" title="Borda Dupla">
+              <div class="frame-mini dual-border"></div>
+            </button>
+            <button class="frame-compact-btn" data-style="gradient-frame" title="Moldura Gradiente">
+              <div class="frame-mini gradient-frame"></div>
+            </button>
+            <button class="frame-compact-btn" data-style="classic-gold" title="Clássico Dourado">
+              <div class="frame-mini classic-gold"></div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Mensagens -->
+        <div class="overlay-section">
+          <label class="overlay-label">Mensagem</label>
+          <div class="message-tabs-compact">
+            <button class="msg-tab active" data-category="custom">✏️</button>
+            <button class="msg-tab" data-category="social">👥</button>
+            <button class="msg-tab" data-category="motivation">💪</button>
+            <button class="msg-tab" data-category="protest">✊</button>
+          </div>
+          
+          <div class="message-panel" data-category="custom">
+            <input type="text" id="custom-message-input" placeholder="Digite sua mensagem..." maxlength="50" />
+            <button id="apply-custom-message" class="btn-compact">Aplicar</button>
+          </div>
+
+          <div class="message-panel hidden" data-category="social">
+            <select id="social-messages" class="message-select">
+              <option value="">Selecionar...</option>
+              <option value="👉 Me segue no canal!">👉 Me segue no canal!</option>
+              <option value="🔔 Ativa o sininho!">🔔 Ativa o sininho!</option>
+              <option value="💬 Comenta aqui embaixo!">💬 Comenta aqui embaixo!</option>
+              <option value="❤️ Deixa o like!">❤️ Deixa o like!</option>
+              <option value="🔗 Link na descrição">🔗 Link na descrição</option>
+              <option value="📺 Assista até o final">📺 Assista até o final</option>
+            </select>
+          </div>
+
+          <div class="message-panel hidden" data-category="motivation">
+            <select id="motivation-messages" class="message-select">
+              <option value="">Selecionar...</option>
+              <option value="💪 Você consegue!">💪 Você consegue!</option>
+              <option value="🌟 Acredite em você">🌟 Acredite em você</option>
+              <option value="🚀 Rumo ao sucesso">🚀 Rumo ao sucesso</option>
+              <option value="✨ Seja a mudança">✨ Seja a mudança</option>
+              <option value="🎯 Foco e determinação">🎯 Foco e determinação</option>
+              <option value="🔥 Imparável">🔥 Imparável</option>
+              <option value="🌈 Dias melhores virão">🌈 Dias melhores virão</option>
+              <option value="💎 Você é único">💎 Você é único</option>
+            </select>
+          </div>
+
+          <div class="message-panel hidden" data-category="protest">
+            <select id="protest-messages" class="message-select">
+              <option value="">Selecionar...</option>
+              <option value="🏳️‍🌈 Amor é amor">🏳️‍🌈 Amor é amor</option>
+              <option value="🏳️‍🌈 Respeito à diversidade">🏳️‍🌈 Respeito à diversidade</option>
+              <option value="✊ Contra o racismo">✊ Contra o racismo</option>
+              <option value="✊ Vidas negras importam">✊ Vidas negras importam</option>
+              <option value="🚫 Não ao feminicídio">🚫 Não ao feminicídio</option>
+              <option value="♀️ Respeito às mulheres">♀️ Respeito às mulheres</option>
+              <option value="🌍 Todos somos iguais">🌍 Todos somos iguais</option>
+              <option value="❤️ Empatia sempre">❤️ Empatia sempre</option>
+            </select>
+          </div>
+
+          <button id="clear-message" class="btn-compact btn-danger">🗑️ Limpar</button>
+        </div>
+
+        <!-- Posição e Tamanho -->
+        <div class="overlay-section">
+          <label class="overlay-label">Posição</label>
+          <select id="overlay-position" class="overlay-select">
+            <option value="bottom-right">Inferior Direito</option>
+            <option value="bottom-left">Inferior Esquerdo</option>
+            <option value="top-right">Superior Direito</option>
+            <option value="top-left">Superior Esquerdo</option>
+          </select>
+          
+          <label class="overlay-label">Tamanho</label>
+          <div class="size-control">
+            <input type="range" id="overlay-size" min="100" max="400" value="200" step="10" />
+            <span id="overlay-size-value">200px</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <h3>Ações</h3>
+        <button id="stop-all" class="btn-danger">⏹ Parar Todas Fontes</button>
+      </div>
+    </aside>
+
+    <footer>
+      <div class="footer-info">
+        Streaming API Studio v1.0
+      </div>
+      <div class="footer-info" id="footer-status">
+        Pronto para captura
+      </div>
+    </footer>
+  </div>
+
+  <div class="drawer-scrim" id="drawer-scrim"></div>
+
+  <div class="qr-modal" id="qr-modal">
+    <div class="qr-content">
+      <h3>Conectar Câmera do Celular</h3>
+      <p style="color: var(--text-muted); margin-bottom: 16px;">
+        Escaneie o QR Code com seu celular
+      </p>
+      <div class="qr-code" id="qr-code-container">
+        <canvas id="qr-canvas"></canvas>
+      </div>
+      <p style="font-size: 12px; color: var(--text-muted);">
+        Aguardando conexão...
+      </p>
+      <button class="btn-secondary" id="close-qr">Fechar</button>
+    </div>
+  </div>
+
+  <!-- Modal de Configuração de Overlay -->
+
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script type="module" src="/js/studio.js"></script>
+</body>
+</html>

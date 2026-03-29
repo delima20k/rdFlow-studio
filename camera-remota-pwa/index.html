@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Câmera Remota" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0b1220" />
+  <link rel="manifest" href="/manifest.json" crossorigin="use-credentials" />
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%233b82f6' width='100' height='100' rx='20'/><text x='50' y='70' font-size='60' text-anchor='middle' fill='white'>📹</text></svg>" />
+  <title>📱 Câmera Remota</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      padding: 16px;
+      background: rgba(0, 0, 0, 0.5);
+      text-align: center;
+      border-bottom: 1px solid #334155;
+    }
+
+    .header h1 {
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .status {
+      font-size: 13px;
+      color: #94a3b8;
+      margin-top: 4px;
+    }
+
+    .status.connected { color: #10b981; }
+    .status.error { color: #ef4444; }
+
+    .camera-container {
+      flex: 1;
+      position: relative;
+      background: #0a0a0a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .placeholder {
+      position: absolute;
+      text-align: center;
+      color: #64748b;
+    }
+
+    .placeholder svg {
+      width: 80px;
+      height: 80px;
+      opacity: 0.3;
+      margin-bottom: 16px;
+    }
+
+    .controls {
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    button {
+      padding: 16px;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    button:active { transform: scale(0.95); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-primary { background: #3b82f6; color: white; }
+    .btn-secondary { background: #475569; color: white; }
+    .btn-danger { background: #ef4444; color: white; }
+    .btn-install { background: #10b981; color: white; }
+
+    .info-box {
+      background: rgba(30, 41, 59, 0.8);
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      text-align: center;
+      color: #94a3b8;
+    }
+
+    @media (orientation: landscape) {
+      .controls {
+        flex-direction: row;
+        flex-wrap: wrap;
+      }
+      button { flex: 1; min-width: 140px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>📱 Câmera Remota</h1>
+    <div class="status" id="status">Pronta para iniciar</div>
+  </div>
+
+  <div class="camera-container">
+    <video id="camera" autoplay playsinline muted></video>
+    <div class="placeholder" id="placeholder">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+      </svg>
+      <div>Toque em "Iniciar Câmera"</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="start" class="btn-primary">📹 Iniciar Câmera</button>
+    <button id="flip" class="btn-secondary" disabled>🔄 Inverter</button>
+    <button id="stop" class="btn-danger" disabled>❌ Desconectar</button>
+    <button id="install" class="btn-install" style="display: none;">⬇ Instalar App</button>
+    <div class="info-box" id="info">Aguardando...</div>
+  </div>
+
+  <script>
+    console.log("PWA Iniciado");
+    
+    // Registrar Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(reg => console.log('[SW] Registrado:', reg.scope))
+        .catch(err => console.warn('[SW] Erro ao registrar:', err));
+    }
+    
+    const API_URL = new URLSearchParams(location.search).get("api") || location.origin;
+    const SESSION = new URLSearchParams(location.search).get("session");
+
+    const $ = id => document.getElementById(id);
+    const cam = $("camera");
+    const status = $("status");
+    const info = $("info");
+    const placeholder = $("placeholder");
+    const startBtn = $("start");
+    const flipBtn = $("flip");
+    const stopBtn = $("stop");
+    const installBtn = $("install");
+
+    let stream = null;
+    let peer = null;
+    let facing = "environment";
+
+    // Detectar iOS
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+    function updateStatus(msg, type = "normal") {
+      status.textContent = msg;
+      status.className = "status" + (type === "ok" ? " connected" : type === "error" ? " error" : "");
+    }
+
+    async function startCamera() {
+      try {
+        console.log("Solicitando câmera e microfone...");
+        updateStatus("🎤📹 Solicitando permissões...");
+        info.textContent = "Toque em 'Permitir' quando solicitado";
+        
+        const constraints = {
+          video: { 
+            facingMode: facing, 
+            width: { ideal: 1920 }, 
+            height: { ideal: 1080 } 
+          },
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        };
+
+        console.log("Constraints:", constraints);
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        console.log("Stream obtido:", stream.getTracks().map(t => t.kind + ": " + t.label));
+
+        cam.srcObject = stream;
+        placeholder.style.display = "none";
+        startBtn.disabled = true;
+        flipBtn.disabled = false;
+        stopBtn.disabled = false;
+        updateStatus("✅ Câmera ativa", "ok");
+
+        if (SESSION) {
+          updateStatus("🔗 Conectando ao estúdio...");
+          info.textContent = "Estabelecendo conexão...";
+          await connectStudio();
+        } else {
+          info.textContent = "✅ Câmera ativa • Sem sessão de estúdio";
+        }
+      } catch (err) {
+        console.error("Erro ao iniciar câmera:", err);
+        updateStatus(`❌ Erro: ${err.name}`, "error");
+        
+        // Mensagens específicas para cada tipo de erro
+        if (err.name === "NotAllowedError") {
+          info.textContent = "❌ Permissão negada! Recarregue e permita o acesso à câmera e microfone";
+        } else if (err.name === "NotFoundError") {
+          info.textContent = "❌ Câmera ou microfone não encontrados";
+        } else if (err.name === "NotReadableError") {
+          info.textContent = "❌ Câmera em uso por outro app. Feche outros apps e tente novamente";
+        } else if (err.name === "OverconstrainedError") {
+          info.textContent = "❌ Configurações não suportadas. Tentando novamente...";
+          // Tentar com constraints mais simples
+          setTimeout(() => startCameraFallback(), 1000);
+        } else {
+          info.textContent = `❌ ${err.message}`;
+        }
+      }
+    }
+
+    async function startCameraFallback() {
+      try {
+        console.log("Tentando com constraints simplificados...");
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        cam.srcObject = stream;
+        placeholder.style.display = "none";
+        startBtn.disabled = true;
+        flipBtn.disabled = false;
+        stopBtn.disabled = false;
+        updateStatus("✅ Câmera ativa", "ok");
+        info.textContent = "✅ Câmera ativa (modo compatibilidade)";
+      } catch (err) {
+        console.error("Fallback falhou:", err);
+        updateStatus("❌ Não foi possível acessar câmera", "error");
+      }
+    }
+
+    async function flipCamera() {
+      try {
+        facing = facing === "user" ? "environment" : "user";
+        if (stream) stream.getTracks().forEach(t => t.stop());
+        await startCamera();
+      } catch (err) {
+        console.error("Erro ao inverter:", err);
+        updateStatus("Erro ao inverter", "error");
+      }
+    }
+
+    function stopCamera() {
+      console.log("Parando câmera...");
+      if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+        stream = null;
+      }
+      if (peer) {
+        peer.close();
+        peer = null;
+      }
+      cam.srcObject = null;
+      placeholder.style.display = "block";
+      startBtn.disabled = false;
+      flipBtn.disabled = true;
+      stopBtn.disabled = true;
+      updateStatus("Desconectado");
+      info.textContent = "Câmera desligada";
+    }
+
+    async function connectStudio() {
+      if (!SESSION) {
+        info.textContent = "⚠️ Acesse pelo QR Code do estúdio";
+        return;
+      }
+
+      try {
+        console.log("Criando peer connection...");
+        peer = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
+        stream.getTracks().forEach(track => {
+          console.log("Adicionando track:", track.kind, track.label);
+          peer.addTrack(track, stream);
+        });
+
+        const offer = await peer.createOffer();
+        await peer.setLocalDescription(offer);
+        console.log("Offer criada, enviando ao servidor...");
+
+        const res = await fetch(`${API_URL}/api/v1/phone-camera/sessions/${SESSION}/offer`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ offer: peer.localDescription })
+        });
+
+        console.log("Resposta do servidor:", res.status);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const data = await res.json();
+        console.log("Answer recebida:", !!data.answer);
+        
+        if (data.answer) {
+          await peer.setRemoteDescription(new RTCSessionDescription(data.answer));
+          updateStatus("🎉 Conectado ao estúdio!", "ok");
+          info.textContent = "✅ Transmitindo para o estúdio";
+          console.log("Conexão estabelecida!");
+        }
+
+        peer.onconnectionstatechange = () => {
+          console.log("Estado da conexão:", peer.connectionState);
+          if (peer.connectionState === "disconnected") {
+            updateStatus("Desconectado");
+            info.textContent = "Conexão perdida";
+          } else if (peer.connectionState === "connected") {
+            updateStatus("✅ Conectado!", "ok");
+          } else if (peer.connectionState === "failed") {
+            updateStatus("❌ Falha na conexão", "error");
+            info.textContent = "Erro na conexão WebRTC";
+          }
+        };
+      } catch (err) {
+        console.error("Erro ao conectar:", err);
+        updateStatus("❌ Erro ao conectar", "error");
+        info.textContent = `❌ ${err.message}`;
+      }
+    }
+
+    // PWA Install
+    let installPrompt = null;
+    
+    window.addEventListener("beforeinstallprompt", e => {
+      console.log("beforeinstallprompt disparado");
+      e.preventDefault();
+      installPrompt = e;
+      installBtn.style.display = "block";
+    });
+
+    installBtn.onclick = async () => {
+      if (isIOS && !isStandalone) {
+        alert("📱 Para instalar no iOS:\n\n1. Toque no botão Compartilhar (⬆️)\n2. Role e toque em 'Adicionar à Tela de Início'\n3. Toque em 'Adicionar'");
+        return;
+      }
+      
+      if (!installPrompt) {
+        console.log("installPrompt não disponível");
+        return;
+      }
+      
+      console.log("Mostrando prompt de instalação...");
+      installPrompt.prompt();
+      const result = await installPrompt.userChoice;
+      console.log("Resultado:", result.outcome);
+      installPrompt = null;
+      installBtn.style.display = "none";
+    };
+
+    // Mostrar botão de instalação no iOS sempre
+    if (isIOS && !isStandalone) {
+      installBtn.style.display = "block";
+      console.log("iOS detectado - mostrando botão de instalação");
+    }
+
+    // Event Listeners
+    startBtn.onclick = startCamera;
+    flipBtn.onclick = flipCamera;
+    stopBtn.onclick = stopCamera;
+
+    // Verificar suporte a getUserMedia
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      updateStatus("❌ Navegador não suportado", "error");
+      info.textContent = "Seu navegador não suporta câmera. Use Chrome ou Safari";
+      startBtn.disabled = true;
+      console.error("getUserMedia não disponível");
+    }
+
+    // Init
+    if (SESSION) {
+      info.textContent = `Sessão: ${SESSION.substring(0, 8)}... • Toque em "Iniciar Câmera"`;
+    } else {
+      info.textContent = "⚠️ Acesse pelo QR Code do estúdio para conectar";
+    }
+
+    console.log("Configurações:");
+    console.log("- API URL:", API_URL);
+    console.log("- Session:", SESSION || "Não definida");
+    console.log("- iOS:", isIOS);
+    console.log("- Standalone:", isStandalone);
+    console.log("- getUserMedia:", !!navigator.mediaDevices?.getUserMedia);
+  </script>
+</body>
+</html>

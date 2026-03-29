@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600" fill="none">
+  <defs>
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Fundo -->
+  <rect width="800" height="600" fill="url(#bg-grad)"/>
+  
+  <!-- Tela do celular -->
+  <rect x="250" y="50" width="300" height="500" rx="30" fill="#1a1a1a" stroke="#333" stroke-width="3"/>
+  
+  <!-- Notch -->
+  <rect x="340" y="60" width="120" height="20" rx="10" fill="#0a0a0a"/>
+  
+  <!-- Header -->
+  <rect x="260" y="90" width="280" height="50" fill="#0b1220"/>
+  <text x="400" y="110" font-family="Arial" font-size="16" font-weight="bold" fill="#fff" text-anchor="middle">
+    📱 Câmera Remota
+  </text>
+  <text x="400" y="130" font-family="Arial" font-size="12" fill="#10b981" text-anchor="middle">
+    Conectado ao estúdio!
+  </text>
+  
+  <!-- Preview de vídeo -->
+  <rect x="260" y="140" width="280" height="280" fill="#05060a"/>
+  
+  <!-- Simulação de preview -->
+  <circle cx="400" cy="280" r="60" fill="#3b82f6" opacity="0.3"/>
+  <text x="400" y="290" font-family="Arial" font-size="14" fill="#9ca3af" text-anchor="middle">
+    Preview da Câmera
+  </text>
+  
+  <!-- Controles -->
+  <rect x="270" y="430" width="260" height="40" rx="8" fill="#3b82f6"/>
+  <text x="400" y="455" font-family="Arial" font-size="14" font-weight="bold" fill="#fff" text-anchor="middle">
+    Iniciar Câmera
+  </text>
+  
+  <rect x="270" y="480" width="260" height="40" rx="8" fill="#374151"/>
+  <text x="400" y="505" font-family="Arial" font-size="14" font-weight="bold" fill="#fff" text-anchor="middle">
+    🔄 Inverter Câmera
+  </text>
+  
+  <!-- Rodapé -->
+  <text x="400" y="580" font-family="Arial" font-size="11" fill="#333" text-anchor="middle">
+    PWA - Progressive Web App
+  </text>
+</svg>

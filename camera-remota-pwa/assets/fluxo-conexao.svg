@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="700" viewBox="0 0 900 700">
+  <defs>
+    <style>
+      .box { fill: #3b82f6; stroke: #1e40af; stroke-width: 2; }
+      .box-text { fill: white; font-family: Arial; font-size: 14px; font-weight: bold; text-anchor: middle; }
+      .arrow { stroke: #6b7280; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+      .label { fill: #374151; font-family: Arial; font-size: 12px; text-anchor: middle; }
+      .title { fill: #111827; font-family: Arial; font-size: 20px; font-weight: bold; text-anchor: middle; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#6b7280" />
+    </marker>
+  </defs>
+
+  <!-- Título -->
+  <text x="450" y="30" class="title">📱 Fluxo de Conexão - Câmera Remota PWA</text>
+
+  <!-- Desktop -->
+  <rect x="50" y="80" width="180" height="60" rx="8" class="box"/>
+  <text x="140" y="115" class="box-text">1. Desktop abre Studio</text>
+
+  <!-- Backend cria sessão -->
+  <rect x="50" y="180" width="180" height="60" rx="8" class="box"/>
+  <text x="140" y="205" class="box-text">2. Clica "Câmera</text>
+  <text x="140" y="225" class="box-text">do Celular"</text>
+
+  <!-- Backend responde -->
+  <rect x="360" y="180" width="180" height="60" rx="8" fill="#10b981" stroke="#059669"/>
+  <text x="450" y="205" class="box-text">3. Backend cria</text>
+  <text x="450" y="225" class="box-text">SessionID</text>
+
+  <!-- QR Code -->
+  <rect x="670" y="180" width="180" height="60" rx="8" class="box"/>
+  <text x="760" y="205" class="box-text">4. Exibe QR Code</text>
+  <text x="760" y="225" class="box-text">com URL + Session</text>
+
+  <!-- Celular escaneia -->
+  <rect x="670" y="300" width="180" height="60" rx="8" class="box"/>
+  <text x="760" y="325" class="box-text">5. Celular escaneia</text>
+  <text x="760" y="345" class="box-text">QR Code</text>
+
+  <!-- PWA abre -->
+  <rect x="670" y="410" width="180" height="60" rx="8" class="box"/>
+  <text x="760" y="435" class="box-text">6. PWA abre</text>
+  <text x="760" y="455" class="box-text">com SessionID</text>
+
+  <!-- Usuário permite câmera -->
+  <rect x="670" y="520" width="180" height="60" rx="8" class="box"/>
+  <text x="760" y="545" class="box-text">7. Permite câmera</text>
+  <text x="760" y="565" class="box-text">e clica "Iniciar"</text>
+
+  <!-- PWA envia offer -->
+  <rect x="360" y="520" width="180" height="60" rx="8" class="box"/>
+  <text x="450" y="545" class="box-text">8. PWA envia</text>
+  <text x="450" y="565" class="box-text">WebRTC Offer</text>
+
+  <!-- Backend processa -->
+  <rect x="360" y="410" width="180" height="60" rx="8" fill="#10b981" stroke="#059669"/>
+  <text x="450" y="435" class="box-text">9. Backend armazena</text>
+  <text x="450" y="455" class="box-text">Offer na sessão</text>
+
+  <!-- Desktop polling -->
+  <rect x="50" y="410" width="180" height="60" rx="8" class="box"/>
+  <text x="140" y="435" class="box-text">10. Desktop faz</text>
+  <text x="140" y="455" class="box-text">polling por Offer</text>
+
+  <!-- Desktop recebe offer -->
+  <rect x="50" y="520" width="180" height="60" rx="8" class="box"/>
+  <text x="140" y="545" class="box-text">11. Recebe Offer,</text>
+  <text x="140" y="565" class="box-text">cria Answer</text>
+
+  <!-- Backend recebe answer -->
+  <rect x="360" y="620" width="180" height="60" rx="8" fill="#10b981" stroke="#059669"/>
+  <text x="450" y="645" class="box-text">12. Backend salva</text>
+  <text x="450" y="665" class="box-text">Answer</text>
+
+  <!-- PWA recebe answer -->
+  <rect x="670" y="620" width="180" height="60" rx="8" class="box"/>
+  <text x="760" y="645" class="box-text">13. PWA recebe</text>
+  <text x="760" y="665" class="box-text">Answer</text>
+
+  <!-- Conexão estabelecida -->
+  <rect x="360" y="300" width="180" height="60" rx="8" fill="#ef4444" stroke="#dc2626"/>
+  <text x="450" y="325" class="box-text">✅ Conexão WebRTC</text>
+  <text x="450" y="345" class="box-text">Estabelecida!</text>
+
+  <!-- Setas -->
+  <path d="M 140 140 L 140 180" class="arrow"/>
+  <path d="M 230 210 L 360 210" class="arrow"/>
+  <path d="M 540 210 L 670 210" class="arrow"/>
+  <path d="M 760 240 L 760 300" class="arrow"/>
+  <path d="M 760 360 L 760 410" class="arrow"/>
+  <path d="M 760 470 L 760 520" class="arrow"/>
+  <path d="M 670 550 L 540 550" class="arrow"/>
+  <path d="M 450 520 L 450 470" class="arrow"/>
+  <path d="M 360 440 L 230 440" class="arrow"/>
+  <path d="M 140 470 L 140 520" class="arrow"/>
+  <path d="M 230 550 L 360 650" class="arrow"/>
+  <path d="M 540 650 L 670 650" class="arrow"/>
+  
+  <!-- Seta de conexão estabelecida -->
+  <path d="M 450 360 L 200 440" class="arrow" stroke="#ef4444" stroke-width="3"/>
+  <path d="M 450 360 L 700 440" class="arrow" stroke="#ef4444" stroke-width="3"/>
+
+  <!-- Labels -->
+  <text x="295" y="200" class="label">POST /sessions</text>
+  <text x="605" y="200" class="label">QR: pwa.app/?session=abc</text>
+  <text x="450" y="510" class="label">POST /offer</text>
+  <text x="295" y="430" class="label">GET /answer (polling)</text>
+  <text x="605" y="640" class="label">GET /answer</text>
+
+  <!-- Legenda -->
+  <rect x="50" y="640" width="120" height="20" rx="4" fill="#3b82f6" stroke="#1e40af"/>
+  <text x="110" y="655" style="fill: white; font-size: 11px; text-anchor: middle;">Cliente</text>
+
+  <rect x="180" y="640" width="120" height="20" rx="4" fill="#10b981" stroke="#059669"/>
+  <text x="240" y="655" style="fill: white; font-size: 11px; text-anchor: middle;">Backend</text>
+</svg>

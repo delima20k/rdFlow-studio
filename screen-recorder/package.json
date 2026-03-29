@@ -1,0 +1,22 @@
+{
+  "name": "screen-recorder-composer",
+  "version": "1.0.0",
+  "description": "Módulo profissional de composição e exportação de vídeo para gravação de tela",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "echo \"No tests yet\" && exit 0"
+  },
+  "keywords": [
+    "screen-recorder",
+    "video-composition",
+    "webcam",
+    "youtube",
+    "tiktok",
+    "shorts",
+    "video-export"
+  ],
+  "author": "DELIMA",
+  "license": "MIT",
+  "type": "commonjs"
+}

@@ -1,0 +1,22 @@
+{
+  "name": "Camera Remota",
+  "short_name": "Camera",
+  "description": "Camera remota em PWA para o estudo de streaming.",
+  "start_url": "/phone-camera.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#06070b",
+  "theme_color": "#0b1220",
+  "icons": [
+    {
+      "src": "/assets/icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/assets/icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
