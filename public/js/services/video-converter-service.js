@@ -175,17 +175,20 @@ class VideoConverterService {
         // Filtro simplificado para melhor performance
         // Remove setsar=1 e simplifica pad
         if (isVertical) {
+          // MODO COVER: escala para cobrir TODO o frame 9:16 e corta o excesso
+          // Elimina faixas pretas. O vídeo preenche 100% da tela do celular.
           ffmpegArgs.push(
-            '-vf', 
-            `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2`
+            '-vf',
+            `scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height}`
           );
-          console.log('[VideoConverter] Filtro VERTICAL otimizado aplicado');
+          console.log('[VideoConverter] Filtro VERTICAL COVER aplicado (sem faixas pretas)');
         } else {
+          // MODO CONTAIN: mantém proporção e adiciona barras (aceitável para horizontal)
           ffmpegArgs.push(
             '-vf', 
             `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2`
           );
-          console.log('[VideoConverter] Filtro HORIZONTAL otimizado aplicado');
+          console.log('[VideoConverter] Filtro HORIZONTAL CONTAIN aplicado');
         }
         
         // Não usar -aspect (redundante e pode causar problemas com pad/scale)

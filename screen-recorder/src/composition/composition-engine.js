@@ -165,6 +165,16 @@ class CompositionEngine {
     const drawX = x + padding + Math.round((width - padding * 2 - videoDimensions.width) / 2);
     const drawY = y + padding + Math.round((height - padding * 2 - videoDimensions.height) / 2);
 
+    // Salvar estado e aplicar clip para evitar overflow (obrigatório no modo cover)
+    this.context.save();
+
+    if (fitMode === 'cover') {
+      // COVER: o vídeo pode ser maior que a área — clip evita overflow para outras regiões
+      this.context.beginPath();
+      this.context.rect(x, y, width, height);
+      this.context.clip();
+    }
+
     // Desenha o vídeo
     this.context.drawImage(
       videoElement,
@@ -173,6 +183,8 @@ class CompositionEngine {
       videoDimensions.width,
       videoDimensions.height
     );
+
+    this.context.restore();
   }
 
   /**

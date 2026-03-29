@@ -1802,7 +1802,7 @@ function createCompositionStream() {
     compositionContext = compositionCanvas.getContext('2d');
   }
   
-  // Definir tamanho do canvas baseado no vídeo principal
+  // Canvas sempre em 1080x1920 (9:16) para exportação mobile sem faixas pretas
   compositionCanvas.width = mainVideo.videoWidth;
   compositionCanvas.height = mainVideo.videoHeight;
   
@@ -2593,31 +2593,37 @@ async function openVerticalVideoEditor(selectedFormat) {
             <p style="font-size: 10px; color: var(--text-muted); margin-top: 4px; font-style: italic;">Adiciona o vídeo da webcam como elemento arrastável</p>
           </div>
           
-          <!-- Posição e Escala do Vídeo -->
+          <!-- Zoom e Escala do Vídeo -->
           <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border);">
-            <h4 style="margin-bottom: 12px; font-size: 14px;">🎬 Vídeo Principal (16:9)</h4>
+            <h4 style="margin-bottom: 12px; font-size: 14px;">🎬 Vídeo Principal (Full 9:16)</h4>
             
-            <!-- Posição Vertical -->
-            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">📍 Posição Vertical:</p>
-            <input type="range" id="video-position-slider" min="0" max="100" value="25" step="1" style="width: 100%; margin-bottom: 8px; accent-color: var(--accent);">
+            <!-- Info: modo cobertura total -->
+            <div style="background: rgba(16, 185, 129, 0.1); border-left: 3px solid var(--success); padding: 8px 10px; border-radius: 6px; margin-bottom: 12px; font-size: 11px; color: var(--text-muted);">
+              ✅ <strong style="color: var(--success);">Modo Cover ativo</strong><br>
+              Vídeo preenche 100% da tela — sem faixas pretas
+            </div>
+            
+            <!-- Zoom Extra -->
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">🔍 Zoom extra (100% = sem zoom):</p>
+            <input type="range" id="video-position-slider" min="0" max="50" value="0" step="1" style="width: 100%; margin-bottom: 8px; accent-color: var(--accent);">
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 16px;">
-              <button id="position-top" class="btn-secondary" style="padding: 8px; font-size: 11px;">⬆️ Topo</button>
-              <button id="position-center" class="btn-secondary" style="padding: 8px; font-size: 11px;">⬤ Centro</button>
-              <button id="position-bottom" class="btn-secondary" style="padding: 8px; font-size: 11px;">⬇️ Base</button>
+              <button id="position-top" class="btn-secondary" style="padding: 8px; font-size: 11px;">📐 Normal</button>
+              <button id="position-center" class="btn-secondary" style="padding: 8px; font-size: 11px;">🔍 +20%</button>
+              <button id="position-bottom" class="btn-secondary" style="padding: 8px; font-size: 11px;">🔎 +50%</button>
             </div>
             
             <!-- Escala (Zoom) -->
-            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">🔍 Tamanho (Zoom):</p>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">📏 Escala fina (50-150%):</p>
             <input type="range" id="video-scale-slider" min="50" max="150" value="100" step="1" style="width: 100%; margin-bottom: 8px; accent-color: var(--success);">
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 8px;">
-              <button id="scale-small" class="btn-secondary" style="padding: 8px; font-size: 11px;">🔻 Pequeno</button>
+              <button id="scale-small" class="btn-secondary" style="padding: 8px; font-size: 11px;">🔻 Menor</button>
               <button id="scale-normal" class="btn-secondary" style="padding: 8px; font-size: 11px;">⬤ Normal</button>
-              <button id="scale-large" class="btn-secondary" style="padding: 8px; font-size: 11px;">🔺 Grande</button>
+              <button id="scale-large" class="btn-secondary" style="padding: 8px; font-size: 11px;">🔺 Maior</button>
             </div>
             
             <div id="video-info" style="font-size: 11px; color: var(--text-muted); text-align: center; padding: 8px; background: rgba(59, 130, 246, 0.1); border-radius: 6px;">
-              <div>Y: <span id="video-y">25%</span> • Escala: <span id="video-scale">100%</span></div>
-              <div style="margin-top: 4px; font-size: 10px;">💡 Arraste e redimensione o vídeo landscape dentro do canvas vertical</div>
+              <div>Zoom: <span id="video-y">100%</span> • Escala: <span id="video-scale">100%</span></div>
+              <div style="margin-top: 4px; font-size: 10px;">💡 Vídeo ocupa toda a tela 9:16 — adicione elementos sobre ele</div>
             </div>
           </div>
         </div>
@@ -2647,8 +2653,8 @@ async function openVerticalVideoEditor(selectedFormat) {
               
               <!-- Área de composição (canvas de fundo) -->
               <div id="drop-zone" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden;">
-                <!-- Vídeo de fundo (apenas referência visual) -->
-                <video id="editor-video" src="" autoplay loop muted style="width: 100%; height: 56.25%; object-fit: contain; position: absolute; top: 25%;"></video>
+                <!-- Vídeo de fundo (cobertura total 9:16 - sem faixas) -->
+                <video id="editor-video" src="" autoplay loop muted style="width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0;"></video>
                 
                 <!-- Mensagem de ajuda -->
                 <div style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.9); color: var(--text-muted); padding: 8px 16px; border-radius: 8px; font-size: 11px; text-align: center; border: 1px solid var(--accent); max-width: 280px;">
@@ -2750,16 +2756,18 @@ async function openVerticalVideoEditor(selectedFormat) {
   // Áreas livres (topo, laterais, base) para adicionar elementos (webcam, emoji, texto)
   // Exportação final: 1080x1920 com todos os elementos
   
-  // Criar camada de vídeo principal - 16:9 DENTRO DO 9:16
+  // Criar camada de vídeo principal - COBRE TODO O CANVAS 9:16 SEM FAIXAS PRETAS
+  // Modo COVER: escala o vídeo para preencher 1080x1920 completo, corta excesso lateral
+  // Resultado: zero faixas pretas, vídeo ocupa tela inteira do celular
   const mainVideoLayer = new VideoLayer(editorEngine.generateId(), editorVideo);
-  mainVideoLayer.x = 0;           // Centro horizontal
-  mainVideoLayer.y = 0.25;        // 25% do topo (deixa espaço para elementos)
-  mainVideoLayer.width = 1.0;     // 100% da largura do canvas
-  mainVideoLayer.height = 0.5625; // 56.25% da altura (proporção 16:9)
-  mainVideoLayer.scale = 1.0;     // Escala padrão (100%)
-  mainVideoLayer.zIndex = 0;      // Vídeo principal sempre atrás dos elementos
+  mainVideoLayer.x = 0;       // Alinhado à esquerda
+  mainVideoLayer.y = 0;       // Começa no topo (canvas completo)
+  mainVideoLayer.width = 1.0; // 100% da largura
+  mainVideoLayer.height = 1.0; // 100% da altura (canvas inteiro)
+  mainVideoLayer.scale = 1.0;  // Escala padrão (100%)
+  mainVideoLayer.zIndex = 0;   // Vídeo principal sempre atrás dos elementos
   mainVideoLayer.maintainAspectRatio = true;
-  mainVideoLayer.fitMode = 'contain'; // CONTAIN = mostra vídeo completo 16:9 sem cortar
+  mainVideoLayer.fitMode = 'cover'; // COVER = preenche TODO o canvas, sem faixas pretas
   
   editorEngine.addLayer(mainVideoLayer);
   
@@ -2822,29 +2830,24 @@ async function openVerticalVideoEditor(selectedFormat) {
   const videoYSpan = modal.querySelector('#video-y');
   const videoScaleSpan = modal.querySelector('#video-scale');
   
-  // Função para atualizar posição vertical do vídeo (0-100%)
-  function updateVideoPosition(yPercent) {
-    // Limitar valores (0% = topo, 50% = centro, 100% = base)
-    yPercent = Math.max(0, Math.min(100, yPercent));
+  // Controle de zoom do vídeo (reutiliza slider de posição)
+  // Com cover + canvas completo, o vídeo já ocupa 100% da tela.
+  // Este controle ajusta o zoom (scale) para ampliar/reduzir a área exibida.
+  function updateVideoPosition(zoomPercent) {
+    // Range: 100% = sem zoom (cobertura exata), 150% = 50% mais ampliado
+    zoomPercent = Math.max(100, Math.min(150, zoomPercent));
+    const normalizedScale = zoomPercent / 100;
     
-    // Converter para normalizado (0-1)
-    // Ajustar para que o vídeo não saia da tela
-    // Vídeo tem altura de 56.25% (0.5625)
-    // Máximo Y para não sair pela base: 1.0 - 0.5625 = 0.4375 (43.75%)
-    const maxYPercent = 43.75;
-    const normalizedY = (yPercent / 100) * (maxYPercent / 100);
-    
-    // Atualizar camada
-    mainVideoLayer.y = normalizedY;
+    // Atualizar escala do vídeo (zoom)
+    mainVideoLayer.scale = normalizedScale;
     
     // Atualizar UI
-    videoYSpan.textContent = `${yPercent}%`;
-    videoPositionSlider.value = yPercent;
+    videoYSpan.textContent = `${zoomPercent}%`;
+    videoPositionSlider.value = (zoomPercent - 100) * 2; // 0-100 no slider
     
-    console.log('[Editor] Posição do vídeo atualizada:', {
-      yPercent,
-      normalizedY,
-      pixelsAt1080x1920: Math.round(normalizedY * 1920)
+    console.log('[Editor] Zoom do vídeo atualizado:', {
+      zoomPercent,
+      normalizedScale
     });
   }
   
@@ -2871,24 +2874,25 @@ async function openVerticalVideoEditor(selectedFormat) {
   
   // Event listeners para sliders
   videoPositionSlider.addEventListener('input', (e) => {
-    updateVideoPosition(parseInt(e.target.value));
+    // Slider 0-50 → zoom 100%-150%
+    updateVideoPosition(100 + parseInt(e.target.value));
   });
   
   videoScaleSlider.addEventListener('input', (e) => {
     updateVideoScale(parseInt(e.target.value));
   });
   
-  // Botões de preset de posição
+  // Botões de preset de zoom (reutiliza posição top/center/bottom → zoom low/normal/high)
   modal.querySelector('#position-top').addEventListener('click', () => {
-    updateVideoPosition(0); // Vídeo no topo
+    updateVideoPosition(100); // Sem zoom (cobertura exata 9:16)
   });
   
   modal.querySelector('#position-center').addEventListener('click', () => {
-    updateVideoPosition(25); // Vídeo centralizado verticalmente
+    updateVideoPosition(120); // Zoom moderado (+20%)
   });
   
   modal.querySelector('#position-bottom').addEventListener('click', () => {
-    updateVideoPosition(43); // Vídeo na base (máximo sem sair da tela)
+    updateVideoPosition(150); // Zoom máximo (+50%)
   });
   
   // Botões de preset de escala

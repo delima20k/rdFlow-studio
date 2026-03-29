@@ -46,7 +46,7 @@ class TikTokLayoutPreset extends LayoutPreset {
       width: canvasWidth,
       height: screenAreaHeight,
       zIndex: 1,
-      fitMode: 'contain', // Mantém aspect ratio
+      fitMode: 'cover', // COVER: preenche área sem faixas pretas, corta excesso
       padding: padding,
       backgroundColor: '#000000'
     };
