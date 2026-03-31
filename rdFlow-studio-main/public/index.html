@@ -1,0 +1,2373 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Estúdio de Captura - Streaming API</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap");
+
+    :root {
+      --bg: #0a0e1a;
+      --panel: #131820;
+      --panel-light: #1a2030;
+      --text: #e8edf5;
+      --text-muted: #8c9ab8;
+      --accent: #3b82f6;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --border: #2d3748;
+      --glass: rgba(19, 24, 32, 0.85);
+      --shadow: 0 20px 40px rgba(5, 10, 20, 0.4);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "IBM Plex Sans", sans-serif;
+      background: radial-gradient(circle at top left, rgba(59, 130, 246, 0.2), transparent 45%),
+        radial-gradient(circle at bottom right, rgba(16, 185, 129, 0.15), transparent 50%),
+        var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .studio-container {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      grid-template-rows: 60px 1fr 80px;
+      height: 100vh;
+      gap: 1px;
+      background: var(--border);
+      transition: grid-template-columns 0.25s ease;
+      overflow-x: hidden;
+    }
+
+    body.controls-collapsed .studio-container {
+      grid-template-columns: 1fr 0;
+    }
+
+    header {
+      grid-column: 1 / -1;
+      background: var(--panel);
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+
+    header h1 {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: 0.4px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-button {
+      background: var(--panel-light);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .header-button:hover {
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .sources-panel {
+      background: transparent;
+      padding: 0;
+      z-index: 2;
+      margin-bottom: 20px;
+    }
+
+    .sources-panel h2 {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .source-item {
+      background: var(--panel-light);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .source-item:hover {
+      border-color: var(--accent);
+      transform: translateX(4px);
+    }
+
+    .source-item.active {
+      border-color: var(--success);
+      background: rgba(16, 185, 129, 0.1);
+    }
+
+    .source-name {
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .source-status {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* ── Painel de Estilo do Overlay ── */
+    .style-section-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-muted);
+      margin: 14px 0 8px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* Grade de shapes */
+    .shape-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+
+    .shape-btn {
+      background: var(--panel-light);
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 4px;
+      cursor: pointer;
+      text-align: center;
+      font-size: 18px;
+      line-height: 1;
+      transition: all 0.15s;
+      color: var(--text);
+    }
+
+    .shape-btn:hover {
+      border-color: var(--accent);
+      background: rgba(59,130,246,0.1);
+    }
+
+    .shape-btn.active {
+      border-color: var(--accent);
+      background: rgba(59,130,246,0.2);
+      box-shadow: 0 0 8px rgba(59,130,246,0.35);
+    }
+
+    .shape-btn span {
+      display: block;
+      font-size: 9px;
+      color: var(--text-muted);
+      margin-top: 3px;
+      font-weight: 500;
+    }
+
+    /* Grade de presets de moldura */
+    .preset-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
+      margin-bottom: 4px;
+    }
+
+    .preset-btn {
+      background: var(--panel-light);
+      border: 2px solid var(--border);
+      border-radius: 7px;
+      padding: 7px 4px;
+      cursor: pointer;
+      text-align: center;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text);
+      transition: all 0.15s;
+      line-height: 1.3;
+    }
+
+    .preset-btn:hover  { border-color: var(--accent); background: rgba(59,130,246,0.08); }
+    .preset-btn.active { border-color: var(--accent); background: rgba(59,130,246,0.2); box-shadow: 0 0 6px rgba(59,130,246,0.3); }
+
+    /* Botões de border-style */
+    .border-style-group {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 2px;
+    }
+
+    .border-style-btn {
+      flex: 1;
+      background: var(--panel-light);
+      border: 2px solid var(--border);
+      border-radius: 6px;
+      padding: 7px 4px;
+      cursor: pointer;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text);
+      transition: all 0.15s;
+    }
+
+    .border-style-btn:hover  { border-color: var(--accent); }
+    .border-style-btn.active { border-color: var(--accent); background: rgba(59,130,246,0.2); }
+
+    /* Linha de controle (label + valor + input) */
+    .ctrl-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .ctrl-row label {
+      font-size: 11px;
+      color: var(--text-muted);
+      min-width: 80px;
+      flex-shrink: 0;
+    }
+
+    .ctrl-row input[type="range"] {
+      flex: 1;
+      height: 4px;
+      cursor: pointer;
+      accent-color: var(--accent);
+      background: var(--panel-light);
+      border-radius: 4px;
+    }
+
+    .ctrl-row .ctrl-value {
+      font-size: 10px;
+      color: var(--text-muted);
+      min-width: 36px;
+      text-align: right;
+    }
+
+    .ctrl-row input[type="color"] {
+      width: 34px;
+      height: 28px;
+      border: 2px solid var(--border);
+      border-radius: 6px;
+      background: none;
+      cursor: pointer;
+      padding: 1px;
+      flex-shrink: 0;
+    }
+
+    /* Toggle switches */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .toggle-row label {
+      font-size: 12px;
+      color: var(--text-muted);
+      flex: 1;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 36px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: var(--border);
+      border-radius: 20px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      width: 14px; height: 14px;
+      left: 3px; top: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+
+    .toggle-switch input:checked + .toggle-slider { background: var(--accent); }
+    .toggle-switch input:checked + .toggle-slider::before { transform: translateX(16px); }
+
+    #overlay-controls-group {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      background: rgba(59,130,246,0.04);
+      transition: box-shadow 0.3s ease;
+    }
+
+    .preview-area {
+      background: var(--panel);
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+      gap: 0;
+      position: relative;
+      z-index: 1;
+      overflow: hidden;
+    }
+
+    /* Webcam Overlay PiP — quadrado por padrão, resize livre em 4 cantos */
+    .webcam-overlay {
+      position: absolute;
+      width: 200px;
+      height: 200px;
+      min-width: 100px;
+      min-height: 80px;
+      background: transparent;
+      border: 3px solid var(--accent);
+      border-radius: 4px;
+      overflow: visible;      /* handles ficam fora do border */
+      cursor: move;
+      z-index: 100;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.8), 0 0 0 2px rgba(59, 130, 246, 0.3);
+      display: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      pointer-events: auto !important;
+    }
+
+    /* Wrapper interno que faz o clip — o vídeo não vaza */
+    .webcam-video-inner {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      border-radius: inherit;
+    }
+
+    /* O vídeo interno preenche 100% do container — sem faixas pretas */
+    .webcam-overlay > video,
+    .webcam-video-inner > video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover !important;
+      object-position: center center;
+      pointer-events: none;
+      display: block;
+    }
+
+    .webcam-overlay.active {
+      display: block;
+      animation: fadeInOverlay 0.25s ease-out;
+    }
+
+    @keyframes fadeInOverlay {
+      from { opacity: 0; transform: scale(0.85); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+
+    .webcam-overlay:hover {
+      border-color: var(--success);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.9), 0 0 0 2px var(--success);
+    }
+
+    .webcam-overlay.dragging {
+      border-color: var(--warning);
+      opacity: 0.9;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 1), 0 0 0 3px var(--warning);
+    }
+
+    .webcam-overlay video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover !important;
+      object-position: center center;
+      pointer-events: none;
+    }
+
+    .overlay-label {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0.95), transparent);
+      padding: 6px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent);
+      pointer-events: none;
+      z-index: 101;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    }
+
+    .overlay-controls {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      display: flex;
+      gap: 6px;
+      z-index: 102;
+    }
+
+    .overlay-btn {
+      width: 28px;
+      height: 28px;
+      background: rgba(0, 0, 0, 0.95);
+      border: 2px solid var(--border);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+      transition: all 0.2s;
+      color: var(--text);
+    }
+
+    .overlay-btn:hover {
+      background: var(--danger);
+      border-color: var(--danger);
+      transform: scale(1.1);
+    }
+
+    /* ── Alças de resize (4 cantos) ── */
+    .resize-handle {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      background: var(--accent);
+      border: 2px solid #fff;
+      border-radius: 50%;
+      z-index: 103;
+      transition: transform 0.15s, background 0.15s, box-shadow 0.15s;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+      /* Centralizar sobre o canto: offset = -(18/2)px = -9px */
+    }
+
+    .resize-handle:hover {
+      transform: scale(1.45);
+      box-shadow: 0 0 14px var(--accent);
+      background: var(--success);
+    }
+
+    .resize-handle:active {
+      transform: scale(1.2);
+      background: var(--warning);
+    }
+
+    .resize-handle.bottom-right {
+      bottom: -9px; right: -9px;
+      cursor: nwse-resize;
+    }
+
+    .resize-handle.bottom-left {
+      bottom: -9px; left: -9px;
+      cursor: nesw-resize;
+    }
+
+    .resize-handle.top-right {
+      top: -9px; right: -9px;
+      cursor: nesw-resize;
+    }
+
+    .resize-handle.top-left {
+      top: -9px; left: -9px;
+      cursor: nwse-resize;
+    }
+
+    .preview-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      height: 100%;
+    }
+
+    .preview-box {
+      background: #000;
+      border-radius: 8px;
+      border: 2px solid var(--border);
+      position: relative;
+      overflow: visible;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .preview-box.main {
+      flex: 1;
+      min-height: 0;
+      width: 100%;
+      overflow: hidden;
+      border-radius: 0;
+      border: none;
+    }
+
+    .preview-box video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center center;
+    }
+
+    .preview-label {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+      z-index: 10;
+    }
+    
+    .format-indicator {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: linear-gradient(135deg, var(--accent), var(--success));
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      z-index: 10;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      display: none;
+      animation: slideIn 0.3s ease-out;
+      cursor: pointer;
+      transition: all 0.2s;
+      user-select: none;
+    }
+    
+    .format-indicator:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    }
+    
+    .format-indicator:active {
+      transform: scale(0.95);
+    }
+    
+    .format-indicator.active {
+      display: block;
+    }
+    
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .preview-placeholder {
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    .controls-panel {
+      background: var(--panel);
+      padding: 16px;
+      overflow-y: auto;
+      position: relative;
+      z-index: 3;
+      width: 360px;
+      max-width: 360px;
+      min-width: 0;
+      box-shadow: var(--shadow);
+      transition: transform 0.25s ease, opacity 0.25s ease;
+      pointer-events: auto;
+    }
+
+    body.controls-open .controls-panel {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    body.controls-collapsed .controls-panel {
+      width: 0;
+      max-width: 0;
+      padding: 0;
+      border: 0;
+      overflow: hidden;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .drawer-scrim {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 6, 14, 0.55);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+      z-index: 4;
+    }
+
+    body.controls-open .drawer-scrim {
+      opacity: 1;
+      pointer-events: none;
+    }
+
+    .control-group {
+      margin-bottom: 20px;
+    }
+
+    .control-group h3 {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 8px;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #2563eb;
+      transform: translateY(-2px);
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #059669;
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+
+    .btn-secondary {
+      background: var(--panel-light);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: #2d3748;
+    }
+
+    select, input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      background: var(--panel-light);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    .recording-indicator {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: var(--danger);
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .recording-indicator.active {
+      display: flex;
+    }
+
+    .rec-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: white;
+      animation: blink 1s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    footer {
+      grid-column: 1 / -1;
+      background: var(--panel);
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid var(--border);
+    }
+
+    .footer-info {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .qr-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .qr-modal.active {
+      display: flex;
+    }
+
+    .qr-content {
+      background: var(--panel);
+      padding: 32px;
+      border-radius: 12px;
+      text-align: center;
+      max-width: 400px;
+    }
+
+    .qr-content h3 {
+      margin-bottom: 16px;
+    }
+
+    .qr-code {
+      background: white;
+      padding: 20px;
+      margin: 20px auto;
+      border-radius: 8px;
+      display: inline-block;
+    }
+
+    /* Editor de vídeo modal - tela cheia */
+    .device-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 4000;
+      overflow: hidden;
+    }
+
+    .device-modal.active {
+      display: flex;
+    }
+
+    .device-content {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    /* Audio Meters - Estilo OBS */
+    .audio-meters {
+      background: var(--panel-light);
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      display: grid !important;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      position: sticky;
+      bottom: 0;
+      z-index: 150;
+      grid-row: 3;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+
+    .audio-channel {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .audio-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .audio-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .audio-value {
+      font-size: 11px;
+      font-family: 'Courier New', monospace;
+      color: var(--text-muted);
+    }
+
+    .meter-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .meter-bar {
+      flex: 1;
+      height: 24px;
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 4px;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .meter-fill {
+      height: 100%;
+      width: 0;
+      background: linear-gradient(to right, 
+        #10b981 0%, 
+        #10b981 50%, 
+        #f59e0b 75%, 
+        #ef4444 90%
+      );
+      transition: width 0.05s ease-out;
+      position: relative;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+    }
+
+    .meter-fill.warning {
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.7);
+    }
+
+    .meter-fill.danger {
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.9);
+    }
+
+    .meter-peak {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--text);
+      transition: left 0.1s ease-out;
+      box-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+    }
+
+    .volume-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .volume-slider {
+      flex: 1;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 6px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 3px;
+      outline: none;
+      border: 1px solid var(--border);
+    }
+
+    .volume-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      background: var(--accent);
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
+      transition: all 0.2s;
+    }
+
+    .volume-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+      box-shadow: 0 0 12px rgba(59, 130, 246, 0.9);
+    }
+
+    .volume-slider::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      background: var(--accent);
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
+      transition: all 0.2s;
+    }
+
+    .volume-slider::-moz-range-thumb:hover {
+      transform: scale(1.2);
+      box-shadow: 0 0 12px rgba(59, 130, 246, 0.9);
+    }
+
+    .volume-icon {
+      font-size: 16px;
+      cursor: pointer;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+      user-select: none;
+    }
+
+    .volume-icon:hover {
+      opacity: 1;
+    }
+
+    .volume-percentage {
+      min-width: 38px;
+      text-align: right;
+      font-size: 12px;
+      font-family: 'Courier New', monospace;
+      color: var(--text-muted);
+    }
+
+    .source-item {
+      position: relative;
+    }
+
+    .config-icon {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 28px;
+      height: 28px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+      z-index: 10;
+    }
+
+    .config-icon:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+      transform: rotate(90deg);
+    }
+
+    .device-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .device-modal.active {
+      display: flex;
+    }
+
+    .device-content {
+      background: var(--panel);
+      padding: 28px;
+      border-radius: 12px;
+      max-width: 480px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .device-content h3 {
+      margin-bottom: 20px;
+      font-size: 18px;
+      color: var(--text);
+    }
+
+    /* Format Selection Cards */
+    .format-option {
+      cursor: pointer;
+      display: block;
+    }
+
+    .format-option input[type="radio"] {
+      display: none;
+    }
+
+    .format-card {
+      background: var(--panel-light);
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      transition: all 0.2s;
+    }
+
+    .format-option:hover .format-card {
+      border-color: var(--accent);
+      background: rgba(59, 130, 246, 0.1);
+    }
+
+    .format-option input[type="radio"]:checked ~ .format-card {
+      border-color: var(--success);
+      background: rgba(16, 185, 129, 0.15);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+
+    .format-icon {
+      font-size: 42px;
+      min-width: 60px;
+      text-align: center;
+    }
+
+    .format-info {
+      flex: 1;
+    }
+
+    .format-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .format-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .format-specs {
+      font-size: 11px;
+      color: var(--warning);
+      font-family: 'Courier New', monospace;
+      background: rgba(245, 158, 11, 0.1);
+      padding: 4px 8px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+
+    .device-analyzing {
+      display: inline-block;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .device-list {
+      margin-bottom: 20px;
+    }
+
+    .device-option {
+      background: var(--panel-light);
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .device-option:hover {
+      border-color: var(--accent);
+      background: rgba(59, 130, 246, 0.1);
+    }
+
+    .device-option.selected {
+      border-color: var(--success);
+      background: rgba(16, 185, 129, 0.15);
+    }
+
+    .device-radio {
+      width: 18px;
+      height: 18px;
+      border: 2px solid var(--border);
+      border-radius: 50%;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .device-option.selected .device-radio {
+      border-color: var(--success);
+    }
+
+    .device-option.selected .device-radio::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 10px;
+      height: 10px;
+      background: var(--success);
+      border-radius: 50%;
+    }
+
+    .device-name {
+      flex: 1;
+      font-size: 14px;
+      color: var(--text);
+    }
+
+    .device-info {
+      flex: 1;
+    }
+
+    .device-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .device-custom-name {
+      color: var(--accent);
+    }
+
+    .device-details {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+      line-height: 1.5;
+    }
+
+    .device-tech {
+      font-size: 11px;
+      color: var(--warning);
+      font-family: 'Courier New', monospace;
+      margin-top: 4px;
+      opacity: 0.7;
+    }
+
+    /* Mini Audio Meter */
+    .mini-audio-meter {
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
+    }
+
+    .mini-meter-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .mini-meter-dots {
+      display: flex;
+      gap: 3px;
+      height: 8px;
+      align-items: center;
+    }
+
+    .mini-meter-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--border);
+      transition: all 0.15s ease;
+    }
+
+    .mini-meter-dot.active-green {
+      background: linear-gradient(135deg, #10b981, #059669);
+      border-color: #10b981;
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+    }
+
+    .mini-meter-dot.active-yellow {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      border-color: #f59e0b;
+      box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+    }
+
+    .mini-meter-dot.active-red {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      border-color: #ef4444;
+      box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+    }
+
+    .mini-meter-dot.active-green,
+    .mini-meter-dot.active-yellow,
+    .mini-meter-dot.active-red {
+      animation: pulse-dot 0.6s infinite;
+    }
+
+    .edit-name-icon {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+      opacity: 0.6;
+      transition: opacity 0.2s;
+    }
+
+    .edit-name-icon:hover {
+      opacity: 1;
+    }
+
+    .device-name-input {
+      width: 100%;
+      padding: 6px 8px;
+      background: var(--panel);
+      border: 1px solid var(--accent);
+      border-radius: 4px;
+      color: var(--text);
+      font-size: 13px;
+      margin-top: 4px;
+    }
+
+    .device-name-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .device-name-actions button {
+      width: auto;
+      padding: 4px 12px;
+      font-size: 12px;
+      margin: 0;
+    }
+
+    .device-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .device-actions button {
+      width: auto;
+      padding: 10px 20px;
+      margin: 0;
+    }
+
+    @media (max-width: 1024px) {
+      .studio-container {
+        grid-template-columns: 1fr;
+        grid-template-rows: 60px 1fr auto auto 80px;
+      }
+
+      .preview-area {
+        grid-column: 1;
+      }
+
+      .controls-panel {
+        position: fixed;
+        top: 60px;
+        right: 0;
+        bottom: 80px;
+        width: min(320px, 92vw);
+        max-width: none;
+        transform: translateX(100%);
+      }
+
+      body.controls-open .controls-panel {
+        transform: translateX(0);
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      body.controls-open .drawer-scrim {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      body.controls-collapsed .controls-panel {
+        opacity: 1;
+        pointer-events: auto;
+      }
+    }
+
+    @media (min-width: 1025px) {
+      .drawer-scrim {
+        display: none;
+      }
+    }
+
+    /* ===== PADRÃO PROFISSIONAL MOBILE-FIRST (TIKTOK/REELS) ===== */
+    
+    /* Preview vertical 9:16 - padrão mobile */
+    .preview-box.main.vertical-mode {
+      aspect-ratio: 9 / 16;
+      max-width: min(500px, 100%);
+      margin: 0 auto;
+      width: 100%;
+    }
+    
+    .preview-box.main.vertical-mode video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Fullscreen mobile para vídeos verticais */
+    @media (max-width: 768px) {
+      .preview-box.main {
+        aspect-ratio: 9 / 16;
+        max-width: 100%;
+        width: 100%;
+        height: auto;
+      }
+
+      .preview-box.main video {
+        width: 100vw;
+        height: 100vh;
+        object-fit: cover;
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+
+      .preview-area {
+        padding: 0;
+      }
+
+      .preview-grid {
+        gap: 0;
+      }
+    }
+
+    /* Player de vídeo sempre fullscreen em modo reprodução mobile */
+    video.fullscreen-mobile {
+      width: 100vw !important;
+      height: 100vh !important;
+      object-fit: cover !important;
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      z-index: 9999 !important;
+    }
+
+    /* Canvas de exportação sempre 9:16 */
+    canvas.export-canvas {
+      width: 1080px;
+      height: 1920px;
+      aspect-ratio: 9 / 16;
+    }
+
+    /* Adaptação para tablets vertical */
+    @media (min-width: 769px) and (max-width: 1024px) {
+      .preview-box.main.vertical-mode {
+        max-width: 450px;
+      }
+    }
+
+    /* Desktop: manter proporção vertical centralizada */
+    @media (min-width: 1025px) {
+      .preview-box.main.vertical-mode {
+        max-width: 600px;
+        aspect-ratio: 9 / 16;
+      }
+    }
+
+    /* ===== PADRÃO GLOBAL DE SCROLLBAR ===== */
+
+    /* Scrollbar padrão para todos os elementos - 5px, invisível até hover */
+    *::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+
+    *::-webkit-scrollbar-track {
+      background: #131820;
+      border-radius: 2px;
+    }
+
+    *::-webkit-scrollbar-thumb {
+      background: transparent;
+      border-radius: 2px;
+      transition: background 0.3s ease;
+      min-height: 2rem;
+      max-height: 2rem;
+    }
+
+    /* Scrollbar visível ao passar o mouse */
+    *:hover::-webkit-scrollbar-thumb {
+      background: var(--accent);
+    }
+
+    *:hover::-webkit-scrollbar-thumb:hover {
+      background: #2563eb;
+    }
+
+    /* Firefox scrollbar - padrão global */
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: transparent #131820;
+    }
+
+    *:hover {
+      scrollbar-color: var(--accent) #131820;
+    }
+
+    /* ===== RESPONSIVIDADE PARA TELAS GRANDES (14-29 POLEGADAS) ===== */
+
+    /* Telas pequenas de desktop (1025px - 1279px) - Netbooks / HD */
+    @media (min-width: 1025px) and (max-width: 1279px) {
+      .studio-container {
+        grid-template-columns: 1fr 260px;
+        grid-template-rows: 54px 1fr 70px;
+      }
+
+      .controls-panel {
+        width: 260px;
+        max-width: 260px;
+        padding: 10px;
+        max-height: calc(100vh - 54px - 70px);
+        font-size: 12px;
+      }
+
+      header {
+        padding: 0 14px;
+        height: 54px;
+      }
+
+      header h1 {
+        font-size: 15px;
+      }
+
+      .header-button {
+        padding: 6px 10px;
+        font-size: 12px;
+      }
+
+      .control-group {
+        margin-bottom: 14px;
+      }
+
+      .control-group h3 {
+        font-size: 11px;
+      }
+
+      button {
+        padding: 9px;
+        font-size: 12px;
+        margin-bottom: 6px;
+      }
+
+      .source-item {
+        padding: 9px;
+        margin-bottom: 7px;
+      }
+
+      .source-name {
+        font-size: 12px;
+      }
+
+      .source-status {
+        font-size: 11px;
+      }
+
+      select, input[type="text"] {
+        padding: 7px;
+        font-size: 12px;
+      }
+
+      footer {
+        padding: 0 14px;
+      }
+
+      .footer-info {
+        font-size: 11px;
+      }
+
+      .audio-label {
+        font-size: 11px;
+      }
+
+      .audio-meters {
+        padding: 8px 16px;
+        gap: 12px;
+      }
+
+      .meter-bar {
+        height: 18px;
+      }
+    }
+
+    /* Telas médias de desktop (1280px - 1365px) - Laptops Full HD pequenos */
+    @media (min-width: 1280px) and (max-width: 1365px) {
+      .studio-container {
+        grid-template-columns: 1fr 300px;
+        grid-template-rows: 56px 1fr 74px;
+      }
+
+      .controls-panel {
+        width: 300px;
+        max-width: 300px;
+        padding: 12px;
+        max-height: calc(100vh - 56px - 74px);
+      }
+
+      header {
+        padding: 0 18px;
+        height: 56px;
+      }
+
+      header h1 {
+        font-size: 17px;
+      }
+
+      .header-button {
+        padding: 7px 12px;
+        font-size: 12px;
+      }
+
+      .control-group {
+        margin-bottom: 16px;
+      }
+
+      .control-group h3 {
+        font-size: 12px;
+      }
+
+      button {
+        padding: 10px;
+        font-size: 13px;
+        margin-bottom: 6px;
+      }
+
+      .source-item {
+        padding: 11px;
+        margin-bottom: 8px;
+      }
+
+      select, input[type="text"] {
+        padding: 8px;
+        font-size: 13px;
+      }
+
+      footer {
+        padding: 0 18px;
+      }
+
+      .audio-meters {
+        padding: 10px 18px;
+        gap: 14px;
+      }
+    }
+
+    /* Telas 14-15 polegadas (1366px - 1919px) - Laptops HD+ */
+    @media (min-width: 1366px) and (max-width: 1919px) {
+      .studio-container {
+        grid-template-columns: 1fr 340px;
+      }
+
+      .controls-panel {
+        width: 340px;
+        max-width: 340px;
+        padding: 16px;
+        max-height: calc(100vh - 60px - 80px);
+      }
+
+      header h1 {
+        font-size: 20px;
+      }
+
+      .control-group h3 {
+        font-size: 13px;
+      }
+
+      button {
+        padding: 11px;
+        font-size: 13px;
+      }
+
+      .source-item {
+        padding: 12px;
+        margin-bottom: 9px;
+      }
+    }
+
+    /* Telas 21-24 polegadas (1920px - 2559px) - Desktop Full HD */
+    @media (min-width: 1920px) and (max-width: 2559px) {
+      .studio-container {
+        grid-template-columns: 1fr 400px;
+        grid-template-rows: 64px 1fr 88px;
+        gap: 2px;
+      }
+
+      .controls-panel {
+        width: 400px;
+        max-width: 400px;
+        padding: 20px;
+        max-height: calc(100vh - 64px - 88px);
+      }
+
+      header {
+        padding: 0 32px;
+        height: 64px;
+      }
+
+      header h1 {
+        font-size: 22px;
+      }
+
+      .preview-area {
+        padding: 0;
+        gap: 0;
+      }
+
+      .control-group {
+        margin-bottom: 22px;
+      }
+
+      .control-group h3 {
+        font-size: 13px;
+        margin-bottom: 11px;
+      }
+
+      button {
+        padding: 13px;
+        font-size: 14px;
+        margin-bottom: 9px;
+      }
+
+      .source-item {
+        padding: 14px;
+        margin-bottom: 10px;
+        border-radius: 9px;
+      }
+
+      .header-button {
+        padding: 9px 15px;
+        font-size: 13px;
+      }
+
+      footer {
+        padding: 0 32px;
+      }
+
+      .footer-info {
+        font-size: 13px;
+      }
+
+      .audio-meters {
+        padding: 14px 32px;
+        gap: 24px;
+      }
+
+      .audio-label {
+        font-size: 13px;
+      }
+
+      select, input[type="text"] {
+        font-size: 13px;
+        padding: 10px;
+      }
+    }
+
+    /* Telas 27-29 polegadas (2560px+) - WQHD/4K Ultrawide */
+    @media (min-width: 2560px) {
+      .studio-container {
+        grid-template-columns: 1fr 460px;
+        grid-template-rows: 70px 1fr 90px;
+        gap: 2px;
+      }
+
+      .controls-panel {
+        width: 460px;
+        max-width: 460px;
+        padding: 22px;
+        max-height: calc(100vh - 70px - 90px);
+      }
+
+      header {
+        padding: 0 40px;
+        height: 70px;
+      }
+
+      header h1 {
+        font-size: 24px;
+      }
+
+      .preview-area {
+        padding: 0;
+        gap: 0;
+      }
+
+      .control-group {
+        margin-bottom: 26px;
+      }
+
+      .control-group h3 {
+        font-size: 14px;
+        margin-bottom: 12px;
+      }
+
+      button {
+        padding: 14px;
+        font-size: 15px;
+        margin-bottom: 10px;
+        border-radius: 9px;
+      }
+
+      .source-item {
+        padding: 16px;
+        margin-bottom: 12px;
+        border-radius: 11px;
+      }
+
+      .source-name {
+        font-size: 15px;
+      }
+
+      .source-status {
+        font-size: 12px;
+      }
+
+      .header-button {
+        padding: 10px 17px;
+        font-size: 14px;
+      }
+
+      footer {
+        padding: 0 40px;
+        height: 90px;
+      }
+
+      .footer-info {
+        font-size: 14px;
+      }
+
+      .audio-meters {
+        padding: 16px 40px;
+        gap: 28px;
+      }
+
+      .audio-label {
+        font-size: 14px;
+      }
+
+      .audio-value {
+        font-size: 12px;
+      }
+
+      select, input[type="text"] {
+        padding: 11px;
+        font-size: 14px;
+      }
+
+      /* Preview labels maiores */
+      .preview-label {
+        padding: 6px 10px;
+        font-size: 13px;
+      }
+
+      /* QR Code modal maior */
+      .qr-content {
+        padding: 40px;
+        max-width: 500px;
+      }
+
+      .qr-content h3 {
+        font-size: 20px;
+        margin-bottom: 20px;
+      }
+    }
+
+    /* ===== FIM DA RESPONSIVIDADE PARA TELAS GRANDES ===== */
+  </style>
+</head>
+<body class="controls-open">
+  <div class="studio-container">
+    <header>
+      <h1>Estúdio de Captura</h1>
+      <div class="header-actions">
+        <button class="header-button" id="show-network-info">📱 Acessar do Celular</button>
+        <button class="header-button" onclick="window.location.href='/api-tests.html'">🧪 Testes API</button>
+        <button class="header-button" id="toggle-controls">☰ Configurações</button>
+        <div class="status-indicator">
+        <div class="status-dot"></div>
+        <span>Sistema pronto</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="preview-area">
+
+      <!-- ===== PREVIEW PRINCIPAL ===== -->
+      <div class="preview-box main">
+        <div class="preview-label">Preview Principal</div>
+        <div class="format-indicator" id="format-indicator" title="Clique para alternar formato">🎬 YouTube 16:9</div>
+        <video id="main-preview" autoplay muted playsinline></video>
+        <div class="preview-placeholder">Nenhuma fonte ativa</div>
+
+        <!-- Webcam PiP — aparece sobre o preview quando webcam ativa -->
+        <div class="webcam-overlay" id="webcam-overlay">
+          <!-- Wrapper interno: overflow:hidden para cortar o vídeo sem cortar os handles -->
+          <div class="webcam-video-inner">
+            <video id="overlay-video" autoplay muted playsinline></video>
+          </div>
+          <div class="overlay-label">📹 Webcam • Arraste para mover</div>
+          <div class="overlay-controls">
+            <div class="overlay-btn" id="overlay-close" title="Fechar">✕</div>
+          </div>
+          <!-- 4 alças de resize nos cantos -->
+          <div class="resize-handle top-left"     data-resize-dir="top-left"    ></div>
+          <div class="resize-handle top-right"    data-resize-dir="top-right"   ></div>
+          <div class="resize-handle bottom-left"  data-resize-dir="bottom-left" ></div>
+          <div class="resize-handle bottom-right" data-resize-dir="bottom-right"></div>
+        </div>
+      </div>
+
+      <!-- Streams ocultos — IDs necessários para o JS e composição de canvas -->
+      <div style="position:fixed; left:-9999px; top:-9999px; width:1px; height:1px; pointer-events:none; overflow:hidden; opacity:0;">
+        <video id="screen-preview"  autoplay muted playsinline style="width:1px;height:1px;"></video>
+        <video id="webcam-preview"  autoplay muted playsinline style="width:1px;height:1px;"></video>
+        <video id="phone-preview"   autoplay muted playsinline style="width:1px;height:1px;"></video>
+        <button id="overlay-config-btn" style="display:none;"></button>
+      </div>
+
+    </main>
+
+    <!-- Medidores de Áudio — rodapé do layout (row 3 do grid) -->
+    <footer class="audio-meters">
+      <div class="audio-channel">
+        <div class="audio-header">
+          <div class="audio-label">🎤 Entrada (Microfone)</div>
+          <div class="audio-value" id="input-db">-∞ dB</div>
+        </div>
+        <div class="meter-container">
+          <div class="meter-bar">
+            <div class="meter-fill" id="input-meter"></div>
+            <div class="meter-peak" id="input-peak" style="left: 0"></div>
+          </div>
+        </div>
+        <div class="volume-control">
+          <span class="volume-icon" id="input-mute" title="Mudo">🔇</span>
+          <input type="range" class="volume-slider" id="input-volume" min="0" max="100" value="100" />
+          <span class="volume-percentage" id="input-percentage">100%</span>
+        </div>
+      </div>
+      <div class="audio-channel">
+        <div class="audio-header">
+          <div class="audio-label">🔊 Saída (Speakers/Fones)</div>
+          <div class="audio-value" id="output-db">-∞ dB</div>
+        </div>
+        <div class="meter-container">
+          <div class="meter-bar">
+            <div class="meter-fill" id="output-meter"></div>
+            <div class="meter-peak" id="output-peak" style="left: 0"></div>
+          </div>
+        </div>
+        <div class="volume-control">
+          <span class="volume-icon" id="output-mute" title="Mudo">🔇</span>
+          <input type="range" class="volume-slider" id="output-volume" min="0" max="100" value="100" />
+          <span class="volume-percentage" id="output-percentage">100%</span>
+        </div>
+      </div>
+    </footer>
+
+    <aside class="controls-panel">
+      <div class="sources-panel">
+        <h2>Fontes de Captura</h2>
+        
+        <div class="source-item" data-source="screen">
+          <div class="source-name">🖥️ Tela + Áudio Sistema</div>
+          <div class="source-status">Clique para ativar</div>
+          <div class="config-icon" data-config="screen" title="Configurar formato de captura">⚙️</div>
+        </div>
+
+        <div class="source-item" data-source="webcam">
+          <div class="source-name">📹 Webcam</div>
+          <div class="source-status">Clique para ativar</div>
+          <div class="config-icon" data-config="webcam" title="Configurar webcam">⚙️</div>
+        </div>
+
+        <div class="source-item" data-source="microphone">
+          <div class="source-name">🎤 Microfone</div>
+          <div class="source-status">Clique para ativar</div>
+          <div class="config-icon" data-config="microphone" title="Configurar microfone">⚙️</div>
+        </div>
+
+        <div class="source-item" data-source="audio-output">
+          <div class="source-name">🔊 Saída de Áudio</div>
+          <div class="source-status">Padrão do sistema</div>
+          <div class="config-icon" data-config="audio-output" title="Configurar saída de áudio">⚙️</div>
+        </div>
+
+        <div class="source-item" data-source="phone">
+          <div class="source-name">📱 Câmera do Celular</div>
+          <div class="source-status">Clique para conectar</div>
+        </div>
+      </div>
+
+      <div class="recording-indicator" id="recording-indicator">
+        <div class="rec-dot"></div>
+        <span>GRAVANDO</span>
+        <span id="recording-time">00:00</span>
+      </div>
+
+      <div class="control-group">
+        <h3>Configurações</h3>
+        <select id="webcam-select">
+          <option value="">Selecione webcam...</option>
+        </select>
+        <select id="resolution-select">
+          <optgroup label="📱 Vertical (TikTok / Reels / Shorts)">
+            <option value="tiktok-fhd" selected>📱 TikTok Full HD (1080x1920)</option>
+            <option value="tiktok-hd">📱 TikTok HD (720x1280)</option>
+            <option value="tiktok-sd">📱 TikTok SD (480x854)</option>
+          </optgroup>
+          <optgroup label="🎬 Horizontal (YouTube / Paisagem)">
+            <option value="youtube-4k">🎬 YouTube 4K (3840x2160)</option>
+            <option value="youtube-fhd">🎬 YouTube Full HD (1920x1080)</option>
+            <option value="youtube-hd">🎬 YouTube HD (1280x720)</option>
+            <option value="youtube-sd">🎬 YouTube SD (640x480)</option>
+          </optgroup>
+          <optgroup label="📺 Clássico">
+            <option value="hd">HD (1280x720)</option>
+            <option value="fhd">Full HD (1920x1080)</option>
+            <option value="sd">SD (640x480)</option>
+          </optgroup>
+        </select>
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px; padding: 6px; background: rgba(59, 130, 246, 0.1); border-radius: 4px; border-left: 3px solid var(--accent);">
+          💡 <strong>Dica:</strong> Use vertical para TikTok/Reels/Shorts e horizontal para YouTube
+        </div>
+      </div>
+
+      <div class="control-group">
+        <h3>Gravação</h3>
+        <button id="start-recording" class="btn-danger">● Iniciar Gravação</button>
+        <button id="stop-recording" class="btn-secondary" disabled>■ Parar Gravação</button>
+        <button id="download-recording" class="btn-secondary" disabled>⬇ Baixar Última Gravação</button>
+      </div>
+
+      <div class="control-group">
+        <h3>Streaming</h3>
+        <input type="text" id="stream-title-studio" placeholder="Título da transmissão" />
+        <button id="create-stream-studio" class="btn-primary">Criar Transmissão</button>
+        <button id="start-broadcast" class="btn-success" disabled>📡 Iniciar Broadcast</button>
+        <button id="stop-broadcast" class="btn-danger" disabled>⏹ Parar Broadcast</button>
+      </div>
+
+      <div class="control-group">
+        <h3>Ações</h3>
+        <button id="stop-all" class="btn-danger">⏹ Parar Todas Fontes</button>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════════
+           DESIGN DA WEBCAM — OverlayStylePanel
+           Todos os IDs e data-* são lidos por OverlayStylePanel.init()
+      ═════════════════════════════════════════════════════════════ -->
+      <div class="control-group" id="overlay-controls-group">
+        <h3>🎨 Design da Webcam</h3>
+
+        <!-- Toggle rápido -->
+        <button id="toggle-overlay" class="btn-secondary" style="margin-bottom:12px;">
+          📹 Ativar / Desativar Câmera
+        </button>
+
+        <!-- ── Forma geométrica ── -->
+        <p class="style-section-title">Forma</p>
+        <div class="shape-grid">
+          <button class="shape-btn active" data-shape="square">⬛<span>Quad.</span></button>
+          <button class="shape-btn" data-shape="rect-h">▬<span>Ret.H</span></button>
+          <button class="shape-btn" data-shape="rect-v">▮<span>Ret.V</span></button>
+          <button class="shape-btn" data-shape="circle">⬤<span>Círculo</span></button>
+          <button class="shape-btn" data-shape="oval">⬭<span>Oval</span></button>
+          <button class="shape-btn" data-shape="rounded">🔲<span>Round</span></button>
+          <button class="shape-btn" data-shape="diamond">♦<span>Losango</span></button>
+          <button class="shape-btn" data-shape="hexagon">⬡<span>Hex.</span></button>
+        </div>
+
+        <!-- ── Arredondamento ── -->
+        <div class="ctrl-row" style="margin-top:6px;">
+          <label>Arredon.</label>
+          <input type="range" id="border-radius" min="0" max="0.5" step="0.01" value="0" />
+          <span class="ctrl-value" id="border-radius-value">Reto</span>
+        </div>
+
+        <!-- ── Borda ── -->
+        <p class="style-section-title">Borda</p>
+
+        <div class="ctrl-row">
+          <label>Cor</label>
+          <input type="color" id="border-color" value="#3b82f6" />
+          <label style="min-width:52px;">Opacidade</label>
+          <input type="range" id="border-opacity" min="0" max="1" step="0.05" value="1" style="flex:1;" />
+          <span class="ctrl-value" id="border-opacity-value">100%</span>
+        </div>
+
+        <div class="ctrl-row">
+          <label>Espessura</label>
+          <input type="range" id="border-thickness" min="0" max="12" step="1" value="3" />
+          <span class="ctrl-value" id="border-thickness-value">3px</span>
+        </div>
+
+        <div class="border-style-group">
+          <button class="border-style-btn active" data-border-style="solid">Sólida</button>
+          <button class="border-style-btn" data-border-style="dashed">Traço</button>
+          <button class="border-style-btn" data-border-style="double">Dupla</button>
+          <button class="border-style-btn" data-border-style="none">Nenhuma</button>
+        </div>
+
+        <!-- ── Molduras ── -->
+        <p class="style-section-title">Moldura</p>
+        <div class="preset-grid">
+          <button class="preset-btn active" data-preset="none">⬜<br>Padrão</button>
+          <button class="preset-btn" data-preset="simple">🔲<br>Simples</button>
+          <button class="preset-btn" data-preset="clean">🪟<br>Clean</button>
+          <button class="preset-btn" data-preset="neon">💡<br>Neon</button>
+          <button class="preset-btn" data-preset="gamer">🎮<br>Gamer</button>
+          <button class="preset-btn" data-preset="glass">🔮<br>Glass</button>
+          <button class="preset-btn" data-preset="colorful">🌈<br>Color</button>
+          <button class="preset-btn" data-preset="shadow">🌑<br>Shadow</button>
+          <button class="preset-btn" data-preset="gradient">🎨<br>Grad.</button>
+        </div>
+
+        <!-- ── Sombra ── -->
+        <p class="style-section-title">Efeitos</p>
+
+        <div class="toggle-row">
+          <label>Sombra</label>
+          <label class="toggle-switch">
+            <input type="checkbox" id="shadow-toggle" checked />
+            <span class="toggle-slider"></span>
+          </label>
+          <input type="color" id="shadow-color" value="#000000"
+                 title="Cor da sombra" style="width:28px;height:22px;padding:1px;border-radius:4px;border:1px solid var(--border);cursor:pointer;" />
+        </div>
+
+        <!-- ── Glow ── -->
+        <div class="toggle-row">
+          <label>Glow</label>
+          <label class="toggle-switch">
+            <input type="checkbox" id="glow-toggle" />
+            <span class="toggle-slider"></span>
+          </label>
+          <input type="color" id="glow-color" value="#3b82f6"
+                 title="Cor do glow" style="width:28px;height:22px;padding:1px;border-radius:4px;border:1px solid var(--border);cursor:pointer;" />
+        </div>
+
+        <div class="ctrl-row">
+          <label>Intensidade</label>
+          <input type="range" id="glow-intensity" min="10" max="80" step="5" value="30" />
+          <span class="ctrl-value" id="glow-intensity-value">30px</span>
+        </div>
+
+        <!-- ── Opacidade geral ── -->
+        <div class="ctrl-row">
+          <label>Opacidade</label>
+          <input type="range" id="overlay-opacity" min="0.1" max="1" step="0.05" value="1" />
+          <span class="ctrl-value" id="overlay-opacity-value">100%</span>
+        </div>
+      </div>
+    </aside>
+
+    <footer>
+      <div class="footer-info">
+        Streaming API Studio v1.0
+      </div>
+      <div class="footer-info" id="footer-status">
+        Pronto para captura
+      </div>
+    </footer>
+  </div>
+
+  <div class="drawer-scrim" id="drawer-scrim"></div>
+
+  <div class="qr-modal" id="qr-modal">
+    <div class="qr-content">
+      <h3>📱 Conectar Câmera do Celular</h3>
+      <p style="color: var(--text-muted); margin-bottom: 24px; font-size: 14px;">
+        Escolha uma das opções abaixo para conectar seu celular:
+      </p>
+      
+      <!-- QR Code -->
+      <div style="text-align: center; margin-bottom: 24px;">
+        <div style="font-weight: 600; margin-bottom: 12px; color: var(--text);">🎯 Opção 1: Escanear QR Code</div>
+        <div class="qr-code" id="qr-code-container">
+          <canvas id="qr-canvas"></canvas>
+        </div>
+        <p style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">
+          Abra a câmera do celular e escaneie
+        </p>
+      </div>
+
+      <!-- Divisor -->
+      <div style="text-align: center; margin: 24px 0; color: var(--text-muted); font-size: 12px;">
+        ─────── ou ───────
+      </div>
+
+      <!-- URL Manual -->
+      <div style="margin-bottom: 24px;">
+        <div style="font-weight: 600; margin-bottom: 12px; color: var(--text);">✏️ Opção 2: Acesso Manual</div>
+        <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; display: flex; gap: 8px; align-items: center;">
+          <input 
+            type="text" 
+            id="connection-url" 
+            readonly 
+            style="flex: 1; background: transparent; border: none; color: var(--accent); font-size: 12px; font-family: monospace;"
+            value="Gerando..."
+          />
+          <button id="copy-url-btn" class="btn-secondary" style="padding: 8px 16px; font-size: 12px;">
+            📋 Copiar
+          </button>
+        </div>
+        <p style="font-size: 11px; color: var(--text-muted); margin-top: 8px;">
+          Digite este endereço no navegador do celular
+        </p>
+      </div>
+
+      <!-- Status -->
+      <div style="text-align: center; padding: 12px; background: rgba(59, 130, 246, 0.1); border-radius: 8px; margin-bottom: 16px;">
+        <div style="font-size: 13px; color: var(--accent);" id="qr-status">
+          ⏳ Aguardando conexão...
+        </div>
+      </div>
+
+      <!-- Botões -->
+      <div style="display: flex; gap: 12px;">
+        <button class="btn-secondary" id="close-qr" style="flex: 1;">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Configuração de Formato de Captura -->
+  <div class="device-modal" id="screen-format-modal">
+    <div class="device-content" style="max-width: 500px;">
+      <h3>🖥️ Formato de Captura de Tela</h3>
+      <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">
+        Escolha o formato ideal para sua plataforma de destino
+      </p>
+      
+      <div style="display: grid; gap: 12px; margin-bottom: 20px;">
+        <label class="format-option" data-format="tiktok">
+          <input type="radio" name="screen-format" value="tiktok" checked />
+          <div class="format-card">
+            <div class="format-icon">📱</div>
+            <div class="format-info">
+              <div class="format-title">TikTok / Vertical</div>
+              <div class="format-desc">Retrato 9:16 - Reels, Shorts, Stories</div>
+              <div class="format-specs">✓ Ideal: 1080x1920, 720x1280</div>
+              <div style="font-size: 11px; margin-top: 4px; color: var(--success);">📱 Selecione janela estreita e alta (vertical)</div>
+            </div>
+          </div>
+        </label>
+        
+        <label class="format-option" data-format="youtube">
+          <input type="radio" name="screen-format" value="youtube" />
+          <div class="format-card">
+            <div class="format-icon">🎬</div>
+            <div class="format-info">
+              <div class="format-title">YouTube / Horizontal</div>
+              <div class="format-desc">Paisagem 16:9 - Vídeos tradicionais</div>
+              <div class="format-specs">✓ Ideal: 1920x1080, 1280x720</div>
+              <div style="font-size: 11px; margin-top: 4px; color: var(--warning);">📺 Selecione tela inteira ou janela paisagem</div>
+            </div>
+          </div>
+        </label>
+      </div>
+
+      <div style="background: rgba(59, 130, 246, 0.1); padding: 14px; border-radius: 8px; border-left: 4px solid var(--accent); margin-bottom: 16px;">
+        <div style="font-size: 13px; line-height: 1.6; color: var(--text);">
+          <div style="margin-bottom: 8px;"><strong>💡 Como funciona:</strong></div>
+          <ul style="margin-left: 20px; color: var(--text-muted); font-size: 12px;">
+            <li style="margin-bottom: 6px;"><strong>YouTube (Horizontal):</strong> Selecione tela inteira ou janela paisagem</li>
+            <li style="margin-bottom: 6px;"><strong>TikTok (Vertical):</strong> Selecione área estreita e alta (ex: janela de celular, editor vertical)</li>
+            <li>O preview se ajustará automaticamente ao formato escolhido</li>
+          </ul>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 8px;">
+        <button class="btn-primary" id="apply-screen-format" style="flex: 1;">✓ Aplicar e Capturar</button>
+        <button class="btn-secondary" id="close-screen-format" style="flex: 1;">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Informações de Rede -->
+  <div class="device-modal" id="network-info-modal">
+    <div class="device-content" style="max-width: 600px;">
+      <h3>📱 Acessar do Celular</h3>
+      <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">
+        Use seu celular na mesma rede Wi-Fi para acessar o sistema
+      </p>
+      
+      <div style="background: var(--panel-light); padding: 16px; border-radius: 8px; margin-bottom: 16px; border: 2px solid var(--accent);">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+          <span style="font-size: 20px;">🌐</span>
+          <strong style="color: var(--accent);">Endereço de Acesso</strong>
+        </div>
+        <div id="network-url" style="font-family: 'Courier New', monospace; font-size: 18px; color: var(--success); padding: 12px; background: rgba(16, 185, 129, 0.1); border-radius: 6px; text-align: center; margin-top: 8px;">
+          http://...carregando...
+        </div>
+        <button id="copy-network-url" class="btn-primary" style="margin-top: 12px; width: 100%;">
+          📋 Copiar Endereço
+        </button>
+      </div>
+
+      <div style="background: rgba(59, 130, 246, 0.1); padding: 14px; border-radius: 8px; border-left: 4px solid var(--accent); margin-bottom: 16px;">
+        <div style="font-size: 13px; line-height: 1.6;">
+          <strong>📋 Passo a Passo:</strong><br>
+          <span style="color: var(--text-muted);">
+            1️⃣ Conecte o celular na mesma Wi-Fi<br>
+            2️⃣ Abra o navegador (Chrome/Safari)<br>
+            3️⃣ Digite o endereço acima<br>
+            4️⃣ Permita acesso à câmera
+          </span>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+        <div style="background: var(--panel-light); padding: 12px; border-radius: 6px; text-align: center;">
+          <div style="font-size: 24px; margin-bottom: 4px;">📱</div>
+          <div style="font-size: 11px; color: var(--text-muted);">TikTok/Reels</div>
+          <div style="font-size: 13px; font-weight: 600; color: var(--text);">Vertical 9:16</div>
+        </div>
+        <div style="background: var(--panel-light); padding: 12px; border-radius: 6px; text-align: center;">
+          <div style="font-size: 24px; margin-bottom: 4px;">🎬</div>
+          <div style="font-size: 11px; color: var(--text-muted);">YouTube</div>
+          <div style="font-size: 13px; font-weight: 600; color: var(--text);">Horizontal 16:9</div>
+        </div>
+      </div>
+
+      <button class="btn-secondary" id="close-network-info" style="width: 100%;">Fechar</button>
+    </div>
+  </div>
+
+  <!-- Modal de Configuração de Webcam -->
+  <div class="device-modal" id="webcam-modal">
+    <div class="device-content">
+      <h3>⚙️ Configurar Webcam</h3>
+      <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px;">
+        Clique no ícone ✏️ para dar nomes personalizados aos seus dispositivos
+      </p>
+      <div class="device-list" id="webcam-list">
+        <p style="color: var(--text-muted); text-align: center;">Carregando dispositivos...</p>
+      </div>
+      <div class="device-actions">
+        <button class="btn-secondary" id="close-webcam-modal">Cancelar</button>
+        <button class="btn-secondary" id="reload-webcam" style="background: var(--accent);">🔄 Recarregar</button>
+        <button class="btn-primary" id="apply-webcam">Aplicar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Configuração de Microfone -->
+  <div class="device-modal" id="microphone-modal">
+    <div class="device-content">
+      <h3>⚙️ Configurar Microfone</h3>
+      <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px;">
+        Clique no ícone ✏️ para dar nomes personalizados aos seus dispositivos
+      </p>
+      <div class="device-list" id="microphone-list">
+        <p style="color: var(--text-muted); text-align: center;">Carregando dispositivos...</p>
+      </div>
+      <div class="device-actions">
+        <button class="btn-secondary" id="close-microphone-modal">Cancelar</button>
+        <button class="btn-secondary" id="reload-microphone" style="background: var(--accent);">🔄 Recarregar</button>
+        <button class="btn-primary" id="apply-microphone">Aplicar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Configuração de Saída de Áudio -->
+  <div class="device-modal" id="audio-output-modal">
+    <div class="device-content">
+      <h3>⚙️ Configurar Saída de Áudio</h3>
+      <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px;">
+        Selecione onde o áudio será reproduzido (caixas de som, fones de ouvido)
+      </p>
+      <div class="device-list" id="audio-output-list">
+        <p style="color: var(--text-muted); text-align: center;">Carregando dispositivos...</p>
+      </div>
+      <div class="device-actions">
+        <button class="btn-secondary" id="close-audio-output-modal">Cancelar</button>
+        <button class="btn-secondary" id="reload-audio-output" style="background: var(--accent);">🔄 Recarregar</button>
+        <button class="btn-primary" id="apply-audio-output">Aplicar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script type="module" src="/js/studio.js?v=20260331p"></script>
+</body>
+</html>

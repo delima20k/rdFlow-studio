@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0b1220" />
+  <link rel="manifest" href="/phone-camera.manifest.json" />
+  <link rel="icon" href="/assets/icons/icon-192.svg" type="image/svg+xml" />
+  <title>Câmera Remota - Streaming API</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap");
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "IBM Plex Sans", sans-serif;
+      background: radial-gradient(circle at top, rgba(59, 130, 246, 0.25), transparent 40%),
+        radial-gradient(circle at bottom, rgba(16, 185, 129, 0.2), transparent 45%),
+        #06070b;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .header {
+      padding: 16px;
+      background: rgba(6, 7, 11, 0.95);
+      text-align: center;
+      border-bottom: 1px solid #333;
+    }
+
+    .header h1 {
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .status {
+      font-size: 13px;
+      color: #888;
+      margin-top: 4px;
+    }
+
+    .status.connected {
+      color: #10b981;
+    }
+
+    .camera-container {
+      flex: 1;
+      position: relative;
+      background: #05060a;
+      overflow: hidden;
+    }
+
+    video {
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+      position: fixed;
+      top: 0;
+      left: 0;
+    }
+
+    .controls {
+      padding: 20px;
+      background: rgba(6, 7, 11, 0.95);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    button {
+      padding: 16px;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+    }
+
+    .btn-secondary {
+      background: #374151;
+      color: white;
+    }
+
+    .btn-install {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: #042f16;
+      font-weight: 700;
+    }
+
+    select {
+      padding: 12px;
+      background: #101827;
+      border: 1px solid #374151;
+      border-radius: 8px;
+      color: white;
+      font-size: 15px;
+    }
+
+    .info-box {
+      background: rgba(16, 24, 39, 0.9);
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      text-align: center;
+      color: #9ca3af;
+    }
+
+    .placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 16px;
+      color: #6b7280;
+    }
+
+    .placeholder svg {
+      width: 80px;
+      height: 80px;
+      opacity: 0.3;
+    }
+
+    @media (orientation: landscape) {
+      .controls {
+        flex-direction: row;
+        flex-wrap: wrap;
+      }
+
+      button {
+        flex: 1;
+        min-width: 140px;
+      }
+
+      select {
+        flex: 1;
+        min-width: 160px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>📱 Câmera Remota</h1>
+    <div class="status" id="status">Aguardando conexão...</div>
+  </div>
+
+  <div class="camera-container">
+    <video id="local-camera" autoplay playsinline muted></video>
+    <div class="placeholder" id="placeholder">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+      </svg>
+      <span>Inicie a câmera para conectar</span>
+    </div>
+  </div>
+
+  <div class="controls">
+    <select id="camera-select">
+      <option value="">Selecione a câmera...</option>
+    </select>
+
+    <button id="start-camera" class="btn-primary">Iniciar Câmera</button>
+    <button id="flip-camera" class="btn-secondary" disabled>🔄 Inverter Câmera</button>
+    <button id="disconnect" class="btn-danger" disabled>Desconectar</button>
+    <button id="install-app" class="btn-install" style="display: none;">⬇ Instalar App</button>
+
+    <div class="info-box" id="info">
+      Use este dispositivo como câmera remota para o estúdio
+    </div>
+  </div>
+
+  <script type="module">
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/phone-camera-sw.js").catch(() => {});
+    }
+
+    const API_BASE_URL = new URLSearchParams(window.location.search).get("api") || window.location.origin;
+    const SESSION_ID = new URLSearchParams(window.location.search).get("session");
+
+    const elements = {
+      localCamera: document.getElementById("local-camera"),
+      cameraSelect: document.getElementById("camera-select"),
+      startCamera: document.getElementById("start-camera"),
+      flipCamera: document.getElementById("flip-camera"),
+      disconnect: document.getElementById("disconnect"),
+      installApp: document.getElementById("install-app"),
+      status: document.getElementById("status"),
+      info: document.getElementById("info"),
+      placeholder: document.getElementById("placeholder")
+    };
+
+    let localStream = null;
+    let peerConnection = null;
+    let currentFacingMode = "user";
+    let cameras = [];
+    let installPromptEvent = null;
+
+    async function listCameras() {
+      try {
+        await navigator.mediaDevices.getUserMedia({ video: true });
+
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        cameras = devices.filter((device) => device.kind === "videoinput");
+
+        elements.cameraSelect.innerHTML = '<option value="">Selecione a câmera...</option>';
+
+        cameras.forEach((camera, index) => {
+          const option = document.createElement("option");
+          option.value = camera.deviceId;
+          option.textContent = camera.label || `Câmera ${index + 1}`;
+          elements.cameraSelect.appendChild(option);
+        });
+
+        if (cameras.length > 0) {
+          elements.cameraSelect.value = cameras[0].deviceId;
+        }
+      } catch (error) {
+        updateStatus("Erro ao listar câmeras");
+        console.error(error);
+      }
+    }
+
+    async function startCamera() {
+      try {
+        const deviceId = elements.cameraSelect.value;
+
+        const constraints = {
+          video: {
+            deviceId: deviceId ? { exact: deviceId } : undefined,
+            facingMode: deviceId ? undefined : currentFacingMode,
+            width: { ideal: 1080 },
+            height: { ideal: 1920 }
+          },
+          audio: true
+        };
+
+        localStream = await navigator.mediaDevices.getUserMedia(constraints);
+        elements.localCamera.srcObject = localStream;
+        elements.placeholder.style.display = "none";
+
+        elements.startCamera.disabled = true;
+        elements.flipCamera.disabled = false;
+        elements.disconnect.disabled = false;
+
+        updateStatus("Câmera ativa - Aguardando conexão...");
+
+        await connectToStudio();
+      } catch (error) {
+        updateStatus("Erro ao iniciar câmera");
+        console.error(error);
+      }
+    }
+
+    async function flipCamera() {
+      currentFacingMode = currentFacingMode === "user" ? "environment" : "user";
+
+      if (localStream) {
+        localStream.getTracks().forEach((track) => track.stop());
+      }
+
+      await startCamera();
+    }
+
+    async function connectToStudio() {
+      if (!SESSION_ID) {
+        updateStatus("ID de sessão não fornecido");
+        return;
+      }
+
+      try {
+        peerConnection = new RTCPeerConnection({
+          iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+        });
+
+        localStream.getTracks().forEach((track) => {
+          peerConnection.addTrack(track, localStream);
+        });
+
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+
+        const response = await fetch(`${API_BASE_URL}/api/v1/phone-camera/sessions/${SESSION_ID}/offer`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ offer: peerConnection.localDescription })
+        });
+
+        const data = await response.json();
+
+        if (data.answer) {
+          await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+          updateStatus("Conectado ao estúdio!", true);
+          elements.info.textContent = "Transmitindo para o estúdio";
+        }
+
+        peerConnection.onconnectionstatechange = () => {
+          if (peerConnection.connectionState === "disconnected") {
+            updateStatus("Desconectado do estúdio");
+          }
+        };
+      } catch (error) {
+        updateStatus("Erro ao conectar com estúdio");
+        console.error(error);
+      }
+    }
+
+    function disconnect() {
+      if (localStream) {
+        localStream.getTracks().forEach((track) => track.stop());
+        localStream = null;
+      }
+
+      if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+      }
+
+      elements.localCamera.srcObject = null;
+      elements.placeholder.style.display = "flex";
+      elements.startCamera.disabled = false;
+      elements.flipCamera.disabled = true;
+      elements.disconnect.disabled = true;
+
+      updateStatus("Desconectado");
+      elements.info.textContent = "Use este dispositivo como câmera remota para o estúdio";
+    }
+
+    function updateStatus(message, connected = false) {
+      elements.status.textContent = message;
+      elements.status.classList.toggle("connected", connected);
+
+    }
+
+    window.addEventListener("beforeinstallprompt", (event) => {
+      event.preventDefault();
+      installPromptEvent = event;
+      elements.installApp.style.display = "block";
+    });
+
+    elements.installApp.addEventListener("click", async () => {
+      if (!installPromptEvent) {
+        return;
+      }
+
+      installPromptEvent.prompt();
+      await installPromptEvent.userChoice;
+      installPromptEvent = null;
+      elements.installApp.style.display = "none";
+    });
+
+    elements.startCamera.addEventListener("click", startCamera);
+    elements.flipCamera.addEventListener("click", flipCamera);
+    elements.disconnect.addEventListener("click", disconnect);
+
+    listCameras();
+
+    if (SESSION_ID) {
+      elements.info.textContent = `Sessão: ${SESSION_ID.substring(0, 8)}...`;
+    }
+  </script>
+</body>
+</html>
